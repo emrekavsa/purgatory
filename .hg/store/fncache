@@ -29,3 +29,4 @@ data/public/whitecomment.svg.i
 data/public/darkcomment.svg.i
 data/src/app/profile/[username]/page.js.i
 data/public/share.svg.i
+data/src/app/search/page.js.i

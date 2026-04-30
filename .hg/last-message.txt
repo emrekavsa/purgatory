@@ -1,1 +1,1 @@
-added share button to pollcards
+added search functionality for polls and users
