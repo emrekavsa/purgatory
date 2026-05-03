@@ -3,7 +3,6 @@ import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useApp } from "@/context/AppContext"
-import Navbar from "@/components/Navbar"
 import PollCard from "@/components/PollCard"
 
 export default function ProfilePage() {
@@ -38,15 +37,12 @@ export default function ProfilePage() {
       .insert([{ poll_id: pollId, option_id: optionId, user_id: currentUser.id }])
     
     if (!error) {
-      // Re-fetch or update local state
       window.location.reload()
     }
   }
 
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-black text-white' : 'bg-gray-50 text-black'}`}>
-      <Navbar />
-      
+    <div className="w-full">
       <div className="max-w-xl mx-auto p-4 mt-8">
         <div className={`p-8 rounded-3xl border mb-10 text-center ${
           isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-100'
@@ -60,7 +56,7 @@ export default function ProfilePage() {
 
         <div className="space-y-6">
           {loading ? (
-            <div className="text-center py-10 font-bold text-blue-500">Loading...</div>
+            <div className="text-center py-10 font-bold text-blue-500 animate-pulse">Loading...</div>
           ) : polls.length > 0 ? (
             polls.map((poll) => (
               <PollCard 
@@ -72,7 +68,7 @@ export default function ProfilePage() {
               />
             ))
           ) : (
-            <div className="text-center py-20 opacity-30 font-bold">
+            <div className="text-center py-20 opacity-30 font-bold italic">
               No polls found.
             </div>
           )}

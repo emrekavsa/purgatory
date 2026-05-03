@@ -3,7 +3,6 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useApp } from '@/context/AppContext'
-import Navbar from '@/components/Navbar'
 import PollCard from '@/components/PollCard'
 
 function formatTime(dateString) {
@@ -137,8 +136,7 @@ export default function PollDetailPage() {
   if (loading) return <div className="p-10 text-center font-bold">Loading...</div>
 
   return (
-    <div className={`min-h-screen pb-20 ${isDark ? 'bg-black text-white' : 'bg-gray-50'}`}>
-      <Navbar />
+    <div className="w-full">
       <div className="max-w-xl mx-auto p-4 mt-6">
         <PollCard poll={poll} user={user} onVote={fetchData} isDark={isDark} onCommentClick={() => commentInputRef.current?.focus()} />
         

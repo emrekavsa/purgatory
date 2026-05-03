@@ -1,1 +1,1 @@
-added search functionality for polls and users
+added sidebar, added a home icon to sidebar and moved navbar to layout.js. 

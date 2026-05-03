@@ -30,3 +30,5 @@ data/public/darkcomment.svg.i
 data/src/app/profile/[username]/page.js.i
 data/public/share.svg.i
 data/src/app/search/page.js.i
+data/public/home.svg.i
+data/src/components/Sidebar.js.i

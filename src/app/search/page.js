@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useApp } from '@/context/AppContext'
-import Navbar from '@/components/Navbar'
 import PollCard from '@/components/PollCard'
 import Link from 'next/link'
 
@@ -47,9 +46,7 @@ export default function SearchPage() {
   }, [query])
 
   return (
-    <div key={query} className={`min-h-screen pb-20 ${isDark ? 'bg-black text-white' : 'bg-gray-50 text-black'}`}>
-      <Navbar />
-      
+    <div key={query} className="w-full">
       <div className="max-w-xl mx-auto p-4 mt-6">
         <h1 className="text-2xl font-bold mb-6 italic opacity-80">
           {query ? `Results for "${query}"` : "Search"}

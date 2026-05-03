@@ -2,7 +2,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
-import Navbar from "@/components/Navbar";
 import PollCard from "@/components/PollCard";
 import Login from "@/components/Login";
 
@@ -87,12 +86,10 @@ export default function Home() {
   if (authLoading) return null;
 
   return (
-    <div className={`min-h-screen ${isDark ? "bg-black text-white" : "bg-gray-50 text-black"}`}>
-      <Navbar onShowLogin={() => setIsLoginOpen(true)} />
-
+    <div className="w-full">
       <div className="max-w-xl mx-auto p-4 mt-8">
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-extrabold tracking-tight mb-2">Polls</h1>
+          <h1 className="text-4xl font-extrabold tracking-tight mb-2 italic opacity-80">Polls</h1>
           <p className="text-gray-500 text-sm">Join the discussion and cast your vote.</p>
         </div>
 
@@ -109,7 +106,7 @@ export default function Home() {
         </div>
 
         {dataLoading && (
-          <div className="text-center py-10 font-bold text-blue-500 opacity-70">
+          <div className="text-center py-10 font-bold text-blue-500 opacity-70 animate-pulse">
             Loading...
           </div>
         )}

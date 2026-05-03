@@ -30,7 +30,7 @@ export default function Navbar({ onShowLogin }) {
       isDark ? "bg-black border-zinc-800 text-white" : "bg-white border-gray-100 text-black"
     }`}>
       
-      <div className="w-[100px] md:w-[180px] flex items-center justify-start">
+      <div className="w-[100px] md:w-[180px] flex items-center justify-start gap-3">
         <Link href="/" className="transition-opacity hover:opacity-80">
           <img src="/poll-icon.svg" alt="Home" className={`w-8 h-8 ${isDark ? 'invert' : ''}`} />
         </Link>

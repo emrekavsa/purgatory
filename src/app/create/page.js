@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useApp } from '@/context/AppContext'
-import Navbar from '@/components/Navbar'
 import Login from '@/components/Login'
 
 export default function CreatePoll() {
@@ -87,12 +86,10 @@ export default function CreatePoll() {
   }
 
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-black text-white' : 'bg-gray-50 text-black'}`}>
-      <Navbar />
-      
+    <div className="w-full">
       <div className="max-w-xl mx-auto p-4 mt-10">
         <form onSubmit={handleSubmit} className={`p-6 border rounded-2xl ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}>
-          <h1 className="text-2xl font-bold mb-6 text-center">New Poll</h1>
+          <h1 className="text-2xl font-bold mb-6 text-center italic opacity-80">New Poll</h1>
           
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2">Question</label>
