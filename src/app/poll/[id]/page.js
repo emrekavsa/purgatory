@@ -66,7 +66,6 @@ export default function PollDetailPage() {
     else router.refresh()
   }
 
-
   const handleUpdateComment = async (commentId) => {
     const updatedText = editContent.trim()
     if (!updatedText) return
@@ -84,7 +83,7 @@ export default function PollDetailPage() {
     return (
       <div key={comment.id} className={`relative ${depth > 0 ? 'ml-6 md:ml-10' : ''}`}>
         {replies.length > 0 && depth < 6 && (
-          <div className={`absolute left-[15px] top-[40px] bottom-0 w-[2px] ${isDark ? 'bg-zinc-800' : 'bg-gray-200'}`} />
+          <div className={`absolute left-[15px] top-[48px] bottom-0 w-[2px] ${isDark ? 'bg-zinc-800' : 'bg-gray-200'}`} />
         )}
         
         <div className="group/comment flex gap-3 py-3">
@@ -110,7 +109,13 @@ export default function PollDetailPage() {
             
             {editingId === comment.id ? (
               <div className="mt-1 flex flex-col gap-2">
-                <textarea className={`w-full p-3 text-sm rounded-xl border outline-none resize-none ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-gray-100'}`} rows="2" value={editContent} onChange={(e) => setEditContent(e.target.value)} autoFocus />
+                <textarea 
+                  className={`w-full p-3 text-sm rounded-xl border outline-none resize-none ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-100 text-black'}`} 
+                  rows="2" 
+                  value={editContent} 
+                  onChange={(e) => setEditContent(e.target.value)} 
+                  autoFocus 
+                />
                 <div className="flex justify-end gap-2 text-[10px] font-bold">
                   <button onClick={() => setEditingId(null)} className="opacity-50">Cancel</button>
                   <button onClick={() => handleUpdateComment(comment.id)} className="bg-blue-600 text-white px-3 py-1 rounded-full">Save</button>
@@ -121,9 +126,17 @@ export default function PollDetailPage() {
             <button onClick={() => { setReplyingTo(replyingTo === comment.id ? null : comment.id); setReplyContent(`@${comment.profiles?.username} `); }} className="text-[10px] font-bold opacity-40 mt-2 hover:opacity-100">REPLY</button>
             
             {replyingTo === comment.id && (
-              <div className="mt-3 flex gap-2">
-                <textarea className={`flex-1 p-3 text-sm rounded-xl border outline-none resize-none ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-gray-200'}`} rows="2" value={replyContent} onChange={(e) => setReplyContent(e.target.value)} autoFocus />
-                <button onClick={(e) => handleCommentSubmit(e, comment.id)} className="px-4 bg-blue-600 text-white text-xs font-bold rounded-full">Post</button>
+              <div className="mt-3 flex gap-2 items-stretch">
+                <textarea 
+                  className={`flex-1 p-3 text-sm rounded-xl border outline-none resize-none ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-100 text-black'}`} 
+                  rows="2" 
+                  value={replyContent} 
+                  onChange={(e) => setReplyContent(e.target.value)} 
+                  autoFocus 
+                />
+                <button onClick={(e) => handleCommentSubmit(e, comment.id)} className="px-5 min-h-[48px] h-auto bg-blue-600 text-white text-xs font-bold rounded-xl transition-all">
+                  Post
+                </button>
               </div>
             )}
           </div>
@@ -133,19 +146,28 @@ export default function PollDetailPage() {
     )
   }
 
-  if (loading) return <div className="p-10 text-center font-bold">Loading...</div>
+  if (loading) return <div className={`p-10 text-center font-bold ${isDark ? 'text-white' : 'text-black'}`}>Loading...</div>
 
   return (
     <div className="w-full">
       <div className="max-w-xl mx-auto p-4 mt-6">
         <PollCard poll={poll} user={user} onVote={fetchData} isDark={isDark} onCommentClick={() => commentInputRef.current?.focus()} />
         
-        <div className={`mt-8 p-6 rounded-3xl border shadow-sm ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-100'}`}>
+        <div className={`mt-8 p-6 rounded-3xl border shadow-sm ${isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-gray-100 text-black'}`}>
           <div className="mb-8 font-bold text-lg tracking-tight">Discussion ({comments.length})</div>
           
-          <form onSubmit={handleCommentSubmit} className="mb-10 flex gap-3 items-start">
-            <textarea ref={commentInputRef} placeholder="Share your thoughts..." value={newComment} onChange={(e) => setNewComment(e.target.value)} className={`flex-1 p-4 rounded-2xl border outline-none resize-none ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-200 text-black'}`} rows="2" />
-            <button disabled={submitting} type="submit" className="px-6 h-[56px] bg-blue-600 text-white font-bold rounded-2xl disabled:opacity-50 transition-all">{submitting ? "..." : "Post"}</button>
+          <form onSubmit={handleCommentSubmit} className="mb-10 flex gap-3 items-stretch">
+            <textarea 
+              ref={commentInputRef} 
+              placeholder="Share your thoughts..." 
+              value={newComment} 
+              onChange={(e) => setNewComment(e.target.value)} 
+              className={`flex-1 p-4 rounded-2xl border outline-none resize-none ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-200 text-black'}`} 
+              rows="2" 
+            />
+            <button disabled={submitting} type="submit" className="px-6 min-h-[56px] h-auto bg-blue-600 text-white font-bold rounded-2xl disabled:opacity-50 transition-all">
+              {submitting ? "..." : "Post"}
+            </button>
           </form>
 
           <div className="space-y-4">

@@ -48,7 +48,7 @@ export default function ProfilePage() {
           isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-100'
         }`}>
           <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
-            {username[0].toUpperCase()}
+            {username ? username[0].toUpperCase() : "U"}
           </div>
           <h1 className="text-2xl font-black">@{username}</h1>
           <p className="opacity-50 text-sm mt-1">{polls.length} Polls Created</p>
