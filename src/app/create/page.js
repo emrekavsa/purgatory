@@ -1,153 +1,191 @@
-"use client"
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import { useApp } from '@/context/AppContext'
-import Login from '@/components/Login'
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { useApp } from "@/context/AppContext";
+import Login from "@/components/Login";
 
 export default function CreatePoll() {
-  const { user, isDark, loading: authLoading } = useApp()
-  const router = useRouter()
-  
-  const [title, setTitle] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const { user, isDark, loading: authLoading } = useApp();
+  const router = useRouter();
+
+  const [title, setTitle] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+
   const [options, setOptions] = useState([
-    { content: '', image: null, preview: null },
-    { content: '', image: null, preview: null }
-  ])
+    { content: "", image: null, preview: null },
+    { content: "", image: null, preview: null },
+  ]);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      setIsLoginOpen(true)
-    }
-  }, [user, authLoading])
+    if (!authLoading && !user) setIsLoginOpen(true);
+  }, [user, authLoading]);
 
   const handleFileChange = (index, e) => {
-    const file = e.target.files[0]
-    if (!file) return
-
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File is too large (Max 5MB)")
-      return
+    const file = e.target.files[0];
+    if (file) {
+      const newOptions = [...options];
+      newOptions[index].image = file;
+      newOptions[index].preview = URL.createObjectURL(file);
+      setOptions(newOptions);
     }
+  };
 
-    const newOptions = [...options]
-    newOptions[index].image = file
-    newOptions[index].preview = URL.createObjectURL(file)
-    setOptions(newOptions)
-  }
+  const addOption = () =>
+    options.length < 4 &&
+    setOptions([...options, { content: "", image: null, preview: null }]);
+
+  // Seçenek silme fonksiyonu
+  const removeOption = (index) => {
+    if (options.length > 2) {
+      const newOptions = options.filter((_, i) => i !== index);
+      setOptions(newOptions);
+    }
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!user) return setIsLoginOpen(true)
+    e.preventDefault();
+    if (!user) return setIsLoginOpen(true);
 
-    const imagesCount = options.filter(opt => opt.image !== null).length
+    const imagesCount = options.filter((opt) => opt.image !== null).length;
     if (imagesCount > 0 && imagesCount < options.length) {
-      alert("Please provide images for all options or none at all.")
-      return
+      alert("Ya tüm seçeneklere fotoğraf ekle ya da hiçbirine!");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
       const { data: poll, error: pollErr } = await supabase
-        .from('polls')
+        .from("polls")
         .insert([{ title, user_id: user.id }])
         .select()
-        .single()
-
-      if (pollErr) throw pollErr
+        .single();
+      if (pollErr) throw pollErr;
 
       for (let i = 0; i < options.length; i++) {
-        let imageUrl = null
+        let imageUrl = null;
         if (options[i].image) {
-          const fileName = `${poll.id}/${Date.now()}-${i}`
+          const fileName = `${poll.id}/${Date.now()}-${i}.jpg`;
           const { error: uploadErr } = await supabase.storage
-            .from('poll-images')
-            .upload(fileName, options[i].image)
+            .from("poll-images")
+            .upload(fileName, options[i].image);
+          if (uploadErr) throw uploadErr;
           
-          if (uploadErr) throw uploadErr
-          const { data } = supabase.storage.from('poll-images').getPublicUrl(fileName)
-          imageUrl = data.publicUrl
+          const { data } = supabase.storage
+            .from("poll-images")
+            .getPublicUrl(fileName);
+          imageUrl = data.publicUrl;
         }
-
-        await supabase.from('poll_options').insert([{ 
-          poll_id: poll.id, 
-          content: options[i].content, 
-          image_url: imageUrl 
-        }])
+        
+        await supabase
+          .from("poll_options")
+          .insert([
+            {
+              poll_id: poll.id,
+              content: options[i].content,
+              image_url: imageUrl,
+            },
+          ]);
       }
-      router.push('/')
+      router.push("/");
     } catch (err) {
-      alert(err.message)
-    } finally {
-      setLoading(false)
+      alert(err.message);
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="w-full">
-      <div className="max-w-xl mx-auto p-4 mt-10">
-        <form onSubmit={handleSubmit} className={`p-6 border rounded-2xl ${isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}>
-          <h1 className="text-2xl font-bold mb-6 text-center italic opacity-80">New Poll</h1>
-          
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Question</label>
-            <input 
-              required 
-              placeholder="What do you want to ask?" 
-              className={`w-full p-4 rounded-xl border outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-gray-50 border-gray-300'}`} 
-              onChange={e => setTitle(e.target.value)} 
-            />
-          </div>
+    <div className="max-w-xl mx-auto p-4 mt-10">
+      <form
+        onSubmit={handleSubmit}
+        className={`p-6 border rounded-[32px] shadow-xl ${isDark ? "bg-zinc-900 border-zinc-800 text-white" : "bg-white border-gray-100 text-black"}`}
+      >
 
-          <div className="flex flex-col gap-4 mb-6">
-            <label className="block text-sm font-medium">Options</label>
-            {options.map((opt, i) => (
-              <div key={i} className={`flex flex-col gap-3 p-4 border rounded-xl ${isDark ? 'border-zinc-800 bg-zinc-900' : 'border-gray-200 bg-gray-50'}`}>
-                <div className="flex items-center gap-3">
-                  <input 
-                    required 
-                    placeholder={`Option ${i+1}`} 
-                    className="flex-1 bg-transparent outline-none p-1 font-medium" 
-                    onChange={e => {
-                      const newOptions = [...options]
-                      newOptions[i].content = e.target.value
-                      setOptions(newOptions)
-                    }} 
-                  />
-                  <label className="px-3 py-2 bg-blue-600 text-white rounded-lg cursor-pointer text-xs font-bold uppercase hover:bg-blue-700 transition-colors">
-                    Upload
-                    <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(i, e)} />
+        <input
+          required
+          placeholder="The Question?"
+          className={`w-full p-4 mb-6 rounded-2xl border outline-none font-bold ${isDark ? "bg-zinc-800 border-zinc-700 text-white" : "bg-gray-50 border-gray-200 text-black"}`}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+
+        <div className="flex flex-col gap-4 mb-6">
+          {options.map((opt, i) => (
+            <div
+              key={i}
+              className={`p-4 border rounded-2xl flex flex-col gap-3 ${isDark ? "border-zinc-800 bg-zinc-800/30" : "border-gray-200 bg-gray-50"}`}
+            >
+              <div className="flex items-center gap-3">
+                <input
+                  required
+                  placeholder={`Option ${i + 1}`}
+                  className="flex-1 bg-transparent outline-none font-bold"
+                  value={opt.content}
+                  onChange={(e) => {
+                    const n = [...options];
+                    n[i].content = e.target.value;
+                    setOptions(n);
+                  }}
+                />
+                
+                <div className="flex items-center gap-2">
+                  {/* Silme Butonu (Sadece 2'den fazla seçenek varsa) */}
+                  {options.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => removeOption(i)}
+                      className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                    >
+                      ✕
+                    </button>
+                  )}
+
+                  <label className="px-4 py-2 bg-blue-600 text-white rounded-xl cursor-pointer text-[10px] font-black uppercase hover:bg-blue-700 transition-colors">
+                    Image
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(i, e)}
+                    />
                   </label>
                 </div>
-                {opt.preview && (
-                  <div className="relative w-full h-32 mt-2 rounded-lg overflow-hidden border border-gray-400">
-                    <img src={opt.preview} className="w-full h-full object-cover" alt="Preview" />
-                  </div>
-                )}
               </div>
-            ))}
-          </div>
+              {opt.preview && (
+                <div className="relative w-full h-32 rounded-xl overflow-hidden bg-black">
+                   <img
+                    src={opt.preview}
+                    className="w-full h-full object-contain"
+                    alt=""
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+          {options.length < 4 && (
+            <button
+              type="button"
+              onClick={addOption}
+              className="py-3 border-2 border-dashed border-zinc-500/20 rounded-xl text-xs font-bold opacity-50 hover:opacity-100 transition-opacity"
+            >
+              + Add Option
+            </button>
+          )}
+        </div>
 
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="w-full p-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg"
-          >
-            {loading ? 'Posting...' : 'Share Poll'}
-          </button>
-        </form>
-      </div>
+        <button
+          disabled={loading}
+          className="w-full p-4 bg-blue-600 text-white rounded-2xl font-black uppercase shadow-lg disabled:opacity-50"
+        >
+          {loading ? "Posting..." : "Share Poll"}
+        </button>
+      </form>
 
-      <Login 
-        isOpen={isLoginOpen} 
-        onClose={() => {
-          setIsLoginOpen(false)
-          if (!user) router.push('/')
-        }} 
-        isDark={isDark} 
+      <Login
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        isDark={isDark}
       />
     </div>
-  )
+  );
 }

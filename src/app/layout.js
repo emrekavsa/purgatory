@@ -1,37 +1,48 @@
+"use client";
+import { useState } from "react";
 import { AppProvider } from '@/context/AppContext'
 import "../styles/globals.css"
 import Sidebar from '@/components/Sidebar'
 import Navbar from '@/components/Navbar'
+import Login from '@/components/Login'
+import { useApp } from '@/context/AppContext'
 
-export const metadata = {
-  title: "poll App",
-  description: "poll app",
+function RootLayoutContent({ children }) {
+  const { isDark } = useApp();
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+
+  // Body etiketini burada tanımlıyoruz ki isDark sınıfını alabilsin
+  return (
+    <body className={`${isDark ? 'bg-black text-white' : 'bg-white text-black'} transition-colors`}>
+      <div className="flex flex-col min-h-screen relative">
+        <Navbar onShowLogin={() => setIsLoginOpen(true)} />
+
+        <div className="flex flex-1 relative">
+          <Sidebar />
+          <main className="flex-1 w-full min-w-0">
+            {children}
+          </main>
+        </div>
+
+        <Login 
+          isOpen={isLoginOpen} 
+          onClose={() => setIsLoginOpen(false)} 
+          isDark={isDark} 
+        />
+      </div>
+    </body>
+  );
 }
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      {/* 
-        text-black dark:text-white -> Yazıları otomatik renklendirir.
-        bg-white dark:bg-black -> Sayfanın en alt katman rengini belirler.
-      */}
-      <body className="text-black dark:text-white bg-white dark:bg-black transition-colors">
-        <AppProvider>
-          <div className="flex flex-col min-h-screen relative">
-            <Navbar />
-
-            <div className="flex flex-1 relative">
-              <Sidebar />
-              
-              {/* main içindeki renkleri body'ye taşıdığımız için burayı sadeleştirdik */}
-              <main className="flex-1 w-full min-w-0">
-                {children}
-              </main>
-            </div>
-
-          </div>
-        </AppProvider>
-      </body>
-    </html>
+    <AppProvider>
+      <html lang="en">
+        {/* Head buraya gelebilir */}
+        <RootLayoutContent>
+          {children}
+        </RootLayoutContent>
+      </html>
+    </AppProvider>
   )
 }

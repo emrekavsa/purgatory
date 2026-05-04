@@ -1,36 +1,23 @@
 "use client"
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatRelativeTime } from '@/lib/utils'
 
-function formatRelativeTime(dateString) {
-  if (!dateString) return ''
-  const diff = Math.floor((new Date() - new Date(dateString)) / 1000)
-  
-  if (diff < 60) return 'just now'
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-  return `${Math.floor(diff / 86400)}d ago`
-}
-
-export default function PollCard({ poll, user, onVote, isDark, onCommentClick }) {
+export default function PollCard({ poll, user, onVote, isDark }) {
   const router = useRouter()
   const [copied, setCopied] = useState(false)
 
   if (!poll || !poll.poll_options) return null
 
   const authorName = poll.profiles?.username || 'Anonymous'
-  const hasImages = poll.poll_options.some(opt => opt.image_url)
   const commentCount = poll.comments?.length || 0
+  const options = poll.poll_options
+  const hasImages = options.some(opt => opt.image_url)
   
-  let totalVotes = 0
-  poll.poll_options.forEach(opt => {
-    totalVotes += (opt.votes?.length || 0)
-  })
-
+  const totalVotes = options.reduce((acc, opt) => acc + (opt.votes?.length || 0), 0)
   const userVote = user 
-    ? poll.poll_options.find(opt => opt.votes?.some(v => v.user_id === user.id))
+    ? options.find(opt => opt.votes?.some(v => v.user_id === user.id))
     : null
-
   const hasVoted = !!userVote
 
   const handleShare = (e) => {
@@ -41,32 +28,32 @@ export default function PollCard({ poll, user, onVote, isDark, onCommentClick })
     setTimeout(() => setCopied(false), 700)
   }
 
+  // 3 seçenek varsa md ekranlarda 3 sütun, aksi halde 2 sütun (veya metinli için flex-col)
+  const gridClass = hasImages 
+    ? `grid grid-cols-1 ${options.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`
+    : "flex flex-col gap-3";
+
   return (
-    <div className={`p-5 border rounded-2xl transition-all ${
-      isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-gray-200 text-black'
+    <div className={`p-5 border rounded-3xl transition-all ${
+      isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-gray-100 text-black'
     }`}>
       
+      {/* Kullanıcı Bilgisi */}
       <div className="flex items-center gap-2 mb-4 text-sm">
-        <a 
-          href={`/profile/${authorName}`}
-          className="flex items-center gap-2 group transition-opacity hover:opacity-80"
-        >
-          <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold">
+        <div onClick={() => router.push(`/profile/${authorName}`)} className="flex items-center gap-2 cursor-pointer">
+          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold">
             {authorName[0].toUpperCase()}
           </div>
-          <span className="font-semibold">@{authorName}</span>
-        </a>
-
-        <div className={`flex items-center gap-2 ${isDark ? 'text-zinc-400' : 'text-gray-500'}`}>
-          <span className="opacity-50">•</span>
-          <span className="opacity-50 text-[12px]">{formatRelativeTime(poll.created_at)}</span>
+          <span className="font-semibold hover:underline">@{authorName}</span>
         </div>
+        <span className="opacity-30 text-[12px]">• {formatRelativeTime(poll.created_at)}</span>
       </div>
 
-      <h3 className="text-xl font-bold mb-5">{poll.title}</h3>
+      <h3 className="text-xl font-bold mb-5 leading-tight">{poll.title}</h3>
 
-      <div className={hasImages ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "flex flex-col gap-2"}>
-        {poll.poll_options.map((opt) => {
+      {/* Seçenekler Alanı */}
+      <div className={gridClass}>
+        {options.map((opt) => {
           const voteCount = opt.votes?.length || 0
           const percent = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0
           const isMyChoice = opt.id === userVote?.id
@@ -74,108 +61,80 @@ export default function PollCard({ poll, user, onVote, isDark, onCommentClick })
           return (
             <button 
               key={opt.id} 
-              onClick={() => onVote(poll.id, opt.id)}
+              onClick={(e) => {
+                e.preventDefault();
+                onVote(poll.id, opt.id);
+              }}
               disabled={hasVoted}
-              className={`group relative flex overflow-hidden border rounded-xl min-h-[56px] transition-all
-                ${hasImages ? 'flex-col' : 'flex-row items-center p-4'} 
-                ${isDark ? 'border-zinc-700' : 'border-gray-100'}
+              className={`group relative flex flex-col border rounded-2xl transition-all overflow-hidden w-full
+                ${isDark ? 'border-zinc-800' : 'border-gray-100'}
                 ${!hasVoted ? (isDark ? 'hover:bg-zinc-800' : 'hover:bg-gray-50') : 'cursor-default'}
                 ${isMyChoice ? 'ring-2 ring-blue-500' : ''}
               `}
             >
-              
-              {hasVoted && (
-                <div 
-                  className={`absolute left-0 top-0 bottom-0 transition-all duration-700 z-0
-                    ${isMyChoice ? 'bg-blue-500/20' : (isDark ? 'bg-white/5' : 'bg-black/5')}
-                  `}
-                  style={{ width: `${percent}%` }}
-                />
-              )}
-
+              {/* Fotoğraflı Seçenek Görünümü */}
               {hasImages && (
-                <div className="w-full h-40 overflow-hidden bg-zinc-800/10 border-b border-inherit flex items-center justify-center z-10 relative">
+                <div className="relative w-full aspect-[4/3] bg-zinc-100 dark:bg-black overflow-hidden border-b border-inherit pointer-events-none">
                   {opt.image_url ? (
-                    <img src={opt.image_url} className="w-full h-full object-cover" alt="" />
+                    <>
+                      <img 
+                        src={opt.image_url} 
+                        className="absolute inset-0 w-full h-full object-cover blur-xl opacity-30 scale-125" 
+                        alt="" 
+                      />
+                      <img 
+                        src={opt.image_url} 
+                        className="relative z-10 w-full h-full object-contain p-1" 
+                        alt={opt.content} 
+                      />
+                    </>
                   ) : (
-                    <span className="text-2xl opacity-20">no image</span>
+                    <div className="w-full h-full flex items-center justify-center opacity-20 text-xs italic">No Image</div>
                   )}
                 </div>
               )}
-              
-              <div className={`relative z-10 flex w-full items-center justify-between ${hasImages ? 'p-4 text-center flex-col' : 'flex-1 text-left'}`}>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-base">{opt.content}</span>
-                  {isMyChoice && <span className="text-blue-500 text-sm">✓</span>}
+
+              {/* Metin ve Oy Barı Alanı */}
+              <div className="relative p-4 w-full flex items-center justify-between min-h-[56px] pointer-events-none">
+                {hasVoted && (
+                  <div 
+                    className={`absolute left-0 top-0 bottom-0 transition-all duration-1000 ease-out z-0
+                      ${isMyChoice ? 'bg-blue-500/10' : (isDark ? 'bg-zinc-800' : 'bg-gray-100')}
+                    `}
+                    style={{ width: `${percent}%` }}
+                  />
+                )}
+
+                <div className="relative z-10 flex items-center gap-2">
+                  <span className="font-medium text-[13px] md:text-sm">{opt.content}</span>
+                  {isMyChoice && <span className="text-blue-500 font-bold">✓</span>}
                 </div>
                 
-                {!hasVoted ? (
-                  <div className={`text-blue-500 font-bold opacity-0 group-hover:opacity-100 transition-opacity ${hasImages ? 'text-xs mt-2' : 'text-sm'}`}>
-                    VOTE
-                  </div>
-                ) : (
-                  <div className={`flex flex-col items-end ${hasImages ? 'mt-2 w-full flex-row justify-between items-center' : ''}`}>
-                    <span className="font-bold">{percent}%</span>
-                    <span className="text-[10px] opacity-60">{voteCount} votes</span>
+                {hasVoted && (
+                  <div className="relative z-10 flex flex-col items-end">
+                    <span className="font-bold text-sm">{percent}%</span>
+                    <span className="text-[9px] opacity-40">{voteCount} votes</span>
                   </div>
                 )}
               </div>
-
             </button>
           )
         })}
       </div>
       
+      {/* Footer */}
       <div className={`mt-5 flex items-center justify-between border-t pt-4 ${isDark ? 'border-zinc-800' : 'border-gray-100'}`}>
-        
         <div className="flex gap-2">
-          <button 
-            onClick={() => {
-              if (onCommentClick) {
-                onCommentClick() 
-              } else {
-                router.push(`/poll/${poll.id}`)
-              }
-            }}
-            className={`group flex items-center gap-1.5 text-sm font-bold transition-all px-3 py-1.5 rounded-full ${
-              isDark 
-                ? 'bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white' 
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            <img 
-              src={isDark ? "/whitecomment.svg" : "/darkcomment.svg"} 
-              alt="Discuss" 
-              className="w-4 h-4 object-contain opacity-70 group-hover:opacity-100 transition-opacity" 
-            />
+          <button onClick={() => router.push(`/poll/${poll.id}`)} className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-full ${isDark ? 'bg-zinc-800 text-zinc-300' : 'bg-gray-100 text-gray-600'}`}>
+            <img src={isDark ? "/whitecomment.svg" : "/darkcomment.svg"} alt="" className="w-4 h-4 opacity-70" />
             <span>{commentCount}</span>
           </button>
-
-          <button 
-            onClick={handleShare}
-            className={`flex items-center justify-center w-10 h-[32px] transition-all duration-300 rounded-full ${
-              copied 
-                ? 'bg-green-500' 
-                : (isDark ? 'bg-zinc-800/80 hover:bg-zinc-700' : 'bg-gray-100 hover:bg-gray-200')
-            }`}
-          >
-            <img 
-              src="/share.svg" 
-              alt="Share" 
-              className={`w-4 h-4 transition-all ${
-                copied ? 'invert-0 brightness-200' : (isDark ? 'invert' : '')
-              } opacity-70`}
-            />
+          <button onClick={handleShare} className={`flex items-center justify-center w-11 h-9 rounded-full ${copied ? 'bg-green-600' : (isDark ? 'bg-zinc-800' : 'bg-gray-100')}`}>
+            <img src="/share.svg" alt="" className={`w-4 h-4 ${isDark || copied ? 'invert' : ''}`} />
           </button>
         </div>
-
-        {hasVoted && (
-          <div className="text-[10px] text-right opacity-50 font-bold uppercase tracking-widest">
-            Total: {totalVotes} {totalVotes === 1 ? 'Vote' : 'Votes'}
-          </div>
-        )}
+        {hasVoted && <div className="text-[10px] opacity-40 font-black uppercase tracking-tighter">{totalVotes} total votes</div>}
       </div>
-
     </div>
   )
 }

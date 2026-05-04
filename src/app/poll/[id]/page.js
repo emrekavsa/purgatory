@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useApp } from '@/context/AppContext'
 import PollCard from '@/components/PollCard'
@@ -16,7 +16,6 @@ function formatTime(dateString) {
 
 export default function PollDetailPage() {
   const { id } = useParams()
-  const router = useRouter()
   const { user, isDark } = useApp()
   
   const [poll, setPoll] = useState(null)
@@ -32,15 +31,20 @@ export default function PollDetailPage() {
   const commentInputRef = useRef(null)
 
   const fetchData = async () => {
-    const { data: p } = await supabase.from('polls').select('*, profiles(username, id), poll_options(*, votes(*)), comments(id)').eq('id', id).single()
-    const { data: c } = await supabase.from('comments').select('*, profiles(username, id)').eq('poll_id', id).order('created_at', { ascending: true })
-    
-    setPoll(p)
-    setComments(c || [])
-    setLoading(false)
+    try {
+      const { data: p } = await supabase.from('polls').select('*, profiles(username, id), poll_options(*, votes(*)), comments(id)').eq('id', id).single()
+      const { data: c } = await supabase.from('comments').select('*, profiles(username, id)').eq('poll_id', id).order('created_at', { ascending: true })
+      
+      setPoll(p)
+      setComments(c || [])
+    } finally {
+      setLoading(false)
+    }
   }
 
-  useEffect(() => { fetchData() }, [id])
+  useEffect(() => { 
+    if (id) fetchData() 
+  }, [id])
 
   const handleCommentSubmit = async (e, parentId = null) => {
     if (e) e.preventDefault()
@@ -51,29 +55,28 @@ export default function PollDetailPage() {
     const { error } = await supabase.from('comments').insert([{ poll_id: id, user_id: user.id, content: content.trim(), parent_id: parentId }])
     
     if (!error) {
-      setNewComment(''); setReplyContent(''); setReplyingTo(null)
+      setNewComment('')
+      setReplyContent('')
+      setReplyingTo(null)
       fetchData()
-      router.refresh()
     }
     setSubmitting(false)
   }
 
   const handleDeleteComment = async (commentId) => {
-    if (!confirm("Delete?")) return
-    setComments(prev => prev.filter(c => c.id !== commentId))
+    if (!confirm("Delete this comment?")) return
     const { error } = await supabase.from('comments').delete().eq('id', commentId).eq('user_id', user.id)
-    if (error) fetchData()
-    else router.refresh()
+    if (!error) fetchData()
   }
 
   const handleUpdateComment = async (commentId) => {
     const updatedText = editContent.trim()
     if (!updatedText) return
-    setComments(prev => prev.map(c => c.id === commentId ? { ...c, content: updatedText } : c))
-    setEditingId(null)
     const { error } = await supabase.from('comments').update({ content: updatedText, updated_at: new Date().toISOString() }).eq('id', commentId)
-    if (error) fetchData()
-    else router.refresh()
+    if (!error) {
+      setEditingId(null)
+      fetchData()
+    }
   }
 
   const renderComment = (comment, allComments, depth = 0) => {
@@ -101,8 +104,8 @@ export default function PollDetailPage() {
               
               {user?.id === comment.user_id && editingId !== comment.id && (
                 <div className="flex gap-2 opacity-0 group-hover/comment:opacity-100 transition-opacity">
-                  <button onClick={() => { setEditingId(comment.id); setEditContent(comment.content); }} className="w-3.5 h-3.5 invert opacity-40 hover:opacity-100"><img src="/edit-icon.svg" alt="E" /></button>
-                  <button onClick={() => handleDeleteComment(comment.id)} className="w-3.5 h-3.5 opacity-40 hover:opacity-100"><img src="/delete-icon.svg" alt="D" /></button>
+                  <button onClick={() => { setEditingId(comment.id); setEditContent(comment.content); }} className="w-3.5 h-3.5 opacity-40 hover:opacity-100 dark:invert"><img src="/edit-icon.svg" alt="Edit" /></button>
+                  <button onClick={() => handleDeleteComment(comment.id)} className="w-3.5 h-3.5 opacity-40 hover:opacity-100"><img src="/delete-icon.svg" alt="Delete" /></button>
                 </div>
               )}
             </div>
