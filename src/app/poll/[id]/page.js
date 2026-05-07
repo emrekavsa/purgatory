@@ -4,20 +4,14 @@ import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useApp } from '@/context/AppContext'
 import PollCard from '@/components/PollCard'
-
-function formatTime(dateString) {
-  if (!dateString) return ''
-  const diff = Math.floor((new Date() - new Date(dateString)) / 1000)
-  if (diff < 60) return 'just now'
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-  return `${Math.floor(diff / 86400)}d ago`
-}
+import { formatRelativeTime } from '@/lib/utils'
+import { handleVote, POLL_SELECT } from '@/lib/api'
+import Login from '@/components/Login'
 
 export default function PollDetailPage() {
   const { id } = useParams()
-  const { user, isDark } = useApp()
-  
+  const { user, isDark, realtimeTrigger } = useApp()
+
   const [poll, setPoll] = useState(null)
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -27,56 +21,74 @@ export default function PollDetailPage() {
   const [editContent, setEditContent] = useState('')
   const [replyingTo, setReplyingTo] = useState(null)
   const [replyContent, setReplyContent] = useState('')
-  
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
+
   const commentInputRef = useRef(null)
 
   const fetchData = async () => {
     try {
-      const { data: p } = await supabase.from('polls').select('*, profiles(username, id), poll_options(*, votes(*)), comments(id)').eq('id', id).single()
-      const { data: c } = await supabase.from('comments').select('*, profiles(username, id)').eq('poll_id', id).order('created_at', { ascending: true })
-      
-      setPoll(p)
+      const { data: p } = await supabase
+        .from('polls')
+        .select(POLL_SELECT)
+        .eq('id', id)
+        .single()
+      const { data: c } = await supabase
+        .from('comments')
+        .select('*, profiles(username, id)')
+        .eq('poll_id', id)
+        .order('created_at', { ascending: true })
+
+      if (p) setPoll(p)
       setComments(c || [])
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { 
-    if (id) fetchData() 
-  }, [id])
+  useEffect(() => {
+    if (id) fetchData()
+  }, [id, realtimeTrigger])
+
+  const onVote = (pollId, optionId) =>
+    handleVote(pollId, optionId, user, (updatedPoll) => {
+      if (typeof updatedPoll === 'function') {
+        fetchData()
+      } else {
+        setPoll(updatedPoll)
+      }
+    }, () => setIsLoginOpen(true))
 
   const handleCommentSubmit = async (e, parentId = null) => {
     if (e) e.preventDefault()
     const content = parentId ? replyContent : newComment
     if (!user || !content.trim() || submitting) return
-    
+
     setSubmitting(true)
-    const { error } = await supabase.from('comments').insert([{ poll_id: id, user_id: user.id, content: content.trim(), parent_id: parentId }])
-    
+    const { error } = await supabase
+      .from('comments')
+      .insert([{ poll_id: id, user_id: user.id, content: content.trim(), parent_id: parentId }])
+
     if (!error) {
       setNewComment('')
       setReplyContent('')
       setReplyingTo(null)
-      fetchData()
     }
     setSubmitting(false)
   }
 
   const handleDeleteComment = async (commentId) => {
-    if (!confirm("Delete this comment?")) return
-    const { error } = await supabase.from('comments').delete().eq('id', commentId).eq('user_id', user.id)
-    if (!error) fetchData()
+    if (!confirm('Delete this comment?')) return
+    await supabase.from('comments').delete().eq('id', commentId).eq('user_id', user.id)
   }
 
   const handleUpdateComment = async (commentId) => {
     const updatedText = editContent.trim()
     if (!updatedText) return
-    const { error } = await supabase.from('comments').update({ content: updatedText, updated_at: new Date().toISOString() }).eq('id', commentId)
-    if (!error) {
-      setEditingId(null)
-      fetchData()
-    }
+    const { error } = await supabase
+      .from('comments')
+      .update({ content: updatedText, updated_at: new Date().toISOString() })
+      .eq('id', commentId)
+    if (!error) setEditingId(null)
   }
 
   const renderComment = (comment, allComments, depth = 0) => {
@@ -88,56 +100,73 @@ export default function PollDetailPage() {
         {replies.length > 0 && depth < 6 && (
           <div className={`absolute left-[15px] top-[48px] bottom-0 w-[2px] ${isDark ? 'bg-zinc-800' : 'bg-gray-200'}`} />
         )}
-        
+
         <div className="group/comment flex gap-3 py-3">
           <div className="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white font-bold text-[10px]">
             {comment.profiles?.username?.[0]?.toUpperCase()}
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-center mb-1">
               <div className="text-xs space-x-1">
                 <span className="font-bold">@{comment.profiles?.username}</span>
-                <span className="opacity-40">• {formatTime(comment.created_at)}</span>
+                <span className="opacity-40">• {formatRelativeTime(comment.created_at)}</span>
                 {isEdited && <span className="opacity-30 italic">(edited)</span>}
               </div>
-              
+
               {user?.id === comment.user_id && editingId !== comment.id && (
                 <div className="flex gap-2 opacity-0 group-hover/comment:opacity-100 transition-opacity">
-                  <button onClick={() => { setEditingId(comment.id); setEditContent(comment.content); }} className="w-3.5 h-3.5 opacity-40 hover:opacity-100 dark:invert"><img src="/edit-icon.svg" alt="Edit" /></button>
-                  <button onClick={() => handleDeleteComment(comment.id)} className="w-3.5 h-3.5 opacity-40 hover:opacity-100"><img src="/delete-icon.svg" alt="Delete" /></button>
+                  <button onClick={() => { setEditingId(comment.id); setEditContent(comment.content) }} className="w-3.5 h-3.5 opacity-40 hover:opacity-100 dark:invert">
+                    <img src="/edit-icon.svg" alt="Edit" />
+                  </button>
+                  <button onClick={() => handleDeleteComment(comment.id)} className="w-3.5 h-3.5 opacity-40 hover:opacity-100">
+                    <img src="/delete-icon.svg" alt="Delete" />
+                  </button>
                 </div>
               )}
             </div>
-            
+
             {editingId === comment.id ? (
               <div className="mt-1 flex flex-col gap-2">
-                <textarea 
-                  className={`w-full p-3 text-sm rounded-xl border outline-none resize-none ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-100 text-black'}`} 
-                  rows="2" 
-                  value={editContent} 
-                  onChange={(e) => setEditContent(e.target.value)} 
-                  autoFocus 
+                <textarea
+                  className={`w-full p-3 text-sm rounded-xl border outline-none resize-none ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-100 text-black'}`}
+                  rows="2"
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  autoFocus
                 />
                 <div className="flex justify-end gap-2 text-[10px] font-bold">
                   <button onClick={() => setEditingId(null)} className="opacity-50">Cancel</button>
                   <button onClick={() => handleUpdateComment(comment.id)} className="bg-blue-600 text-white px-3 py-1 rounded-full">Save</button>
                 </div>
               </div>
-            ) : <p className="text-sm opacity-90 leading-relaxed">{comment.content}</p>}
-            
-            <button onClick={() => { setReplyingTo(replyingTo === comment.id ? null : comment.id); setReplyContent(`@${comment.profiles?.username} `); }} className="text-[10px] font-bold opacity-40 mt-2 hover:opacity-100">REPLY</button>
-            
+            ) : (
+              <p className="text-sm opacity-90 leading-relaxed">{comment.content}</p>
+            )}
+
+            <button
+              onClick={() => {
+                setReplyingTo(replyingTo === comment.id ? null : comment.id)
+                setReplyContent(`@${comment.profiles?.username} `)
+              }}
+              className="text-[10px] font-bold opacity-40 mt-2 hover:opacity-100"
+            >
+              REPLY
+            </button>
+
             {replyingTo === comment.id && (
               <div className="mt-3 flex gap-2 items-stretch">
-                <textarea 
-                  className={`flex-1 p-3 text-sm rounded-xl border outline-none resize-none ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-100 text-black'}`} 
-                  rows="2" 
-                  value={replyContent} 
-                  onChange={(e) => setReplyContent(e.target.value)} 
-                  autoFocus 
+                <textarea
+                  className={`flex-1 p-3 text-sm rounded-xl border outline-none resize-none ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-100 text-black'}`}
+                  rows="2"
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  autoFocus
                 />
-                <button onClick={(e) => handleCommentSubmit(e, comment.id)} className="px-5 min-h-[48px] h-auto bg-blue-600 text-white text-xs font-bold rounded-xl transition-all">
+                <button
+                  onClick={(e) => handleCommentSubmit(e, comment.id)}
+                  className="px-5 min-h-[48px] h-auto bg-blue-600 text-white text-xs font-bold rounded-xl transition-all"
+                >
                   Post
                 </button>
               </div>
@@ -149,27 +178,41 @@ export default function PollDetailPage() {
     )
   }
 
-  if (loading) return <div className={`p-10 text-center font-bold ${isDark ? 'text-white' : 'text-black'}`}>Loading...</div>
+  if (loading) return (
+    <div className={`p-10 text-center font-bold ${isDark ? 'text-white' : 'text-black'}`}>
+      Loading...
+    </div>
+  )
 
   return (
     <div className="w-full">
       <div className="max-w-xl mx-auto p-4 mt-6">
-        <PollCard poll={poll} user={user} onVote={fetchData} isDark={isDark} onCommentClick={() => commentInputRef.current?.focus()} />
-        
+        <PollCard
+          poll={poll}
+          user={user}
+          onVote={onVote}
+          isDark={isDark}
+          onCommentClick={() => commentInputRef.current?.focus()}
+        />
+
         <div className={`mt-8 p-6 rounded-3xl border shadow-sm ${isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-gray-100 text-black'}`}>
           <div className="mb-8 font-bold text-lg tracking-tight">Discussion ({comments.length})</div>
-          
+
           <form onSubmit={handleCommentSubmit} className="mb-10 flex gap-3 items-stretch">
-            <textarea 
-              ref={commentInputRef} 
-              placeholder="Share your thoughts..." 
-              value={newComment} 
-              onChange={(e) => setNewComment(e.target.value)} 
-              className={`flex-1 p-4 rounded-2xl border outline-none resize-none ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-200 text-black'}`} 
-              rows="2" 
+            <textarea
+              ref={commentInputRef}
+              placeholder="Share your thoughts..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              className={`flex-1 p-4 rounded-2xl border outline-none resize-none ${isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-gray-200 text-black'}`}
+              rows="2"
             />
-            <button disabled={submitting} type="submit" className="px-6 min-h-[56px] h-auto bg-blue-600 text-white font-bold rounded-2xl disabled:opacity-50 transition-all">
-              {submitting ? "..." : "Post"}
+            <button
+              disabled={submitting}
+              type="submit"
+              className="px-6 min-h-[56px] h-auto bg-blue-600 text-white font-bold rounded-2xl disabled:opacity-50 transition-all"
+            >
+              {submitting ? '...' : 'Post'}
             </button>
           </form>
 
@@ -182,6 +225,7 @@ export default function PollDetailPage() {
           </div>
         </div>
       </div>
+      <Login isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} isDark={isDark} />
     </div>
   )
 }

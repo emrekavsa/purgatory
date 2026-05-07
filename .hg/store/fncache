@@ -32,3 +32,6 @@ data/public/share.svg.i
 data/src/app/search/page.js.i
 data/public/home.svg.i
 data/src/components/Sidebar.js.i
+data/src/components/ClientShell.js.i
+data/src/lib/utils.js.i
+data/src/lib/api.js.i

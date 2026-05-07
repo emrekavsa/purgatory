@@ -1,1 +1,1 @@
-added sidebar, added a home icon to sidebar and moved navbar to layout.js. 
+added categories to polls.

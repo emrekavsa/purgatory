@@ -5,28 +5,31 @@ import { supabase } from '@/lib/supabase'
 import { useApp } from '@/context/AppContext'
 import PollCard from '@/components/PollCard'
 import Link from 'next/link'
+import { handleVote, POLL_SELECT } from '@/lib/api'
+import Login from '@/components/Login'
 
 export default function SearchPage() {
   const searchParams = useSearchParams()
   const query = searchParams.get('q') || ""
-  const { isDark, user } = useApp()
-  
+  const { isDark, user, realtimeTrigger } = useApp()
+
   const [activeTab, setActiveTab] = useState('polls')
   const [polls, setPolls] = useState([])
   const [people, setPeople] = useState([])
   const [loading, setLoading] = useState(false)
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
 
   const getResults = async () => {
     if (query.trim() === "") {
       setLoading(false)
       return
     }
-    
+
     setLoading(true)
-    
+
     const pollsRes = await supabase
       .from('polls')
-      .select('id, title, created_at, profiles(username), poll_options(id, content, image_url, votes(user_id)), comments(id)')
+      .select(POLL_SELECT)
       .ilike('title', `%${query}%`)
       .limit(10)
 
@@ -43,7 +46,10 @@ export default function SearchPage() {
 
   useEffect(() => {
     getResults()
-  }, [query])
+  }, [query, realtimeTrigger])
+
+  const onVote = (pollId, optionId) =>
+    handleVote(pollId, optionId, user, setPolls, () => setIsLoginOpen(true))
 
   return (
     <div key={query} className="w-full">
@@ -53,21 +59,21 @@ export default function SearchPage() {
         </h1>
 
         <div className={`flex gap-2 p-1 rounded-2xl mb-8 ${isDark ? 'bg-zinc-900' : 'bg-gray-200/50'}`}>
-          <button 
+          <button
             onClick={() => setActiveTab('polls')}
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
-              activeTab === 'polls' 
-                ? (isDark ? 'bg-zinc-800 text-white' : 'bg-white text-black shadow-sm') 
+              activeTab === 'polls'
+                ? (isDark ? 'bg-zinc-800 text-white' : 'bg-white text-black shadow-sm')
                 : 'opacity-50'
             }`}
           >
             Polls ({polls.length})
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('people')}
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
-              activeTab === 'people' 
-                ? (isDark ? 'bg-zinc-800 text-white' : 'bg-white text-black shadow-sm') 
+              activeTab === 'people'
+                ? (isDark ? 'bg-zinc-800 text-white' : 'bg-white text-black shadow-sm')
                 : 'opacity-50'
             }`}
           >
@@ -84,19 +90,19 @@ export default function SearchPage() {
             {activeTab === 'polls' ? (
               polls.length > 0 ? (
                 polls.map(poll => (
-                  <PollCard 
-                    key={poll.id} 
-                    poll={poll} 
-                    user={user} 
-                    isDark={isDark} 
-                    onVote={getResults} 
+                  <PollCard
+                    key={poll.id}
+                    poll={poll}
+                    user={user}
+                    onVote={onVote}
+                    isDark={isDark}
                   />
                 ))
               ) : <p className="text-center py-10 opacity-40">No polls found.</p>
             ) : (
               people.length > 0 ? (
                 people.map(profile => (
-                  <Link 
+                  <Link
                     key={profile.id}
                     href={`/profile/${profile.username}`}
                     className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
@@ -117,6 +123,8 @@ export default function SearchPage() {
           </div>
         )}
       </div>
+
+      <Login isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} isDark={isDark} />
     </div>
   )
 }

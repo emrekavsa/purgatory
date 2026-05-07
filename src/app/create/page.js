@@ -1,99 +1,96 @@
-"use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { useApp } from "@/context/AppContext";
-import Login from "@/components/Login";
+"use client"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
+import { useApp } from "@/context/AppContext"
+import Login from "@/components/Login"
+
+const CATEGORIES = ["General", "Tech", "Sports", "Gaming", "Politics", "Entertainment"]
 
 export default function CreatePoll() {
-  const { user, isDark, loading: authLoading } = useApp();
-  const router = useRouter();
+  const { user, isDark, loading: authLoading } = useApp()
+  const router = useRouter()
 
-  const [title, setTitle] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [title, setTitle] = useState("")
+  const [category, setCategory] = useState("General")
+  const [loading, setLoading] = useState(false)
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
 
   const [options, setOptions] = useState([
     { content: "", image: null, preview: null },
     { content: "", image: null, preview: null },
-  ]);
+  ])
 
   useEffect(() => {
-    if (!authLoading && !user) setIsLoginOpen(true);
-  }, [user, authLoading]);
+    if (!authLoading && !user) setIsLoginOpen(true)
+  }, [user, authLoading])
 
   const handleFileChange = (index, e) => {
-    const file = e.target.files[0];
+    const file = e.target.files[0]
     if (file) {
-      const newOptions = [...options];
-      newOptions[index].image = file;
-      newOptions[index].preview = URL.createObjectURL(file);
-      setOptions(newOptions);
+      const newOptions = [...options]
+      newOptions[index].image = file
+      newOptions[index].preview = URL.createObjectURL(file)
+      setOptions(newOptions)
     }
-  };
+  }
 
   const addOption = () =>
     options.length < 4 &&
-    setOptions([...options, { content: "", image: null, preview: null }]);
+    setOptions([...options, { content: "", image: null, preview: null }])
 
-  // Seçenek silme fonksiyonu
   const removeOption = (index) => {
     if (options.length > 2) {
-      const newOptions = options.filter((_, i) => i !== index);
-      setOptions(newOptions);
+      setOptions(options.filter((_, i) => i !== index))
     }
-  };
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!user) return setIsLoginOpen(true);
+    e.preventDefault()
+    if (!user) return setIsLoginOpen(true)
 
-    const imagesCount = options.filter((opt) => opt.image !== null).length;
+    const imagesCount = options.filter((opt) => opt.image !== null).length
     if (imagesCount > 0 && imagesCount < options.length) {
-      alert("Ya tüm seçeneklere fotoğraf ekle ya da hiçbirine!");
-      return;
+      alert("Please either add images to all options or none of them.")
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
     try {
       const { data: poll, error: pollErr } = await supabase
         .from("polls")
-        .insert([{ title, user_id: user.id }])
+        .insert([{ title, user_id: user.id, category: category }])
         .select()
-        .single();
-      if (pollErr) throw pollErr;
+        .single()
+      if (pollErr) throw pollErr
 
       for (let i = 0; i < options.length; i++) {
-        let imageUrl = null;
+        let imageUrl = null
         if (options[i].image) {
-          const fileName = `${poll.id}/${Date.now()}-${i}.jpg`;
+          const fileName = `${poll.id}/${Date.now()}-${i}.jpg`
           const { error: uploadErr } = await supabase.storage
             .from("poll-images")
-            .upload(fileName, options[i].image);
-          if (uploadErr) throw uploadErr;
-          
+            .upload(fileName, options[i].image)
+          if (uploadErr) throw uploadErr
+
           const { data } = supabase.storage
             .from("poll-images")
-            .getPublicUrl(fileName);
-          imageUrl = data.publicUrl;
+            .getPublicUrl(fileName)
+          imageUrl = data.publicUrl
         }
-        
-        await supabase
-          .from("poll_options")
-          .insert([
-            {
-              poll_id: poll.id,
-              content: options[i].content,
-              image_url: imageUrl,
-            },
-          ]);
+
+        await supabase.from("poll_options").insert([{
+          poll_id: poll.id,
+          content: options[i].content,
+          image_url: imageUrl,
+        }])
       }
-      router.push("/");
+      router.push("/")
     } catch (err) {
-      alert(err.message);
-      setLoading(false);
+      alert(err.message)
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="max-w-xl mx-auto p-4 mt-10">
@@ -101,15 +98,34 @@ export default function CreatePoll() {
         onSubmit={handleSubmit}
         className={`p-6 border rounded-[32px] shadow-xl ${isDark ? "bg-zinc-900 border-zinc-800 text-white" : "bg-white border-gray-100 text-black"}`}
       >
-
         <input
           required
           placeholder="The Question?"
-          className={`w-full p-4 mb-6 rounded-2xl border outline-none font-bold ${isDark ? "bg-zinc-800 border-zinc-700 text-white" : "bg-gray-50 border-gray-200 text-black"}`}
+          className={`w-full p-4 mb-4 rounded-2xl border outline-none font-bold ${isDark ? "bg-zinc-800 border-zinc-700 text-white" : "bg-gray-50 border-gray-200 text-black"}`}
           onChange={(e) => setTitle(e.target.value)}
         />
 
+        <div className="mb-6 px-1">
+          <label className="text-[10px] font-black uppercase opacity-40 mb-2 block tracking-widest ml-1">📂 Category</label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className={`w-full p-3.5 rounded-2xl border outline-none font-bold cursor-pointer transition-all appearance-none ${
+              isDark 
+                ? "bg-zinc-800 border-zinc-700 text-white hover:border-zinc-500" 
+                : "bg-gray-50 border-gray-200 text-black hover:border-gray-300"
+            }`}
+          >
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat} className={isDark ? "bg-zinc-900" : "bg-white"}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="flex flex-col gap-4 mb-6">
+          <label className="text-[10px] font-black uppercase opacity-40 px-1 tracking-widest">Options</label>
           {options.map((opt, i) => (
             <div
               key={i}
@@ -122,14 +138,13 @@ export default function CreatePoll() {
                   className="flex-1 bg-transparent outline-none font-bold"
                   value={opt.content}
                   onChange={(e) => {
-                    const n = [...options];
-                    n[i].content = e.target.value;
-                    setOptions(n);
+                    const n = [...options]
+                    n[i].content = e.target.value
+                    setOptions(n)
                   }}
                 />
-                
+
                 <div className="flex items-center gap-2">
-                  {/* Silme Butonu (Sadece 2'den fazla seçenek varsa) */}
                   {options.length > 2 && (
                     <button
                       type="button"
@@ -139,8 +154,7 @@ export default function CreatePoll() {
                       ✕
                     </button>
                   )}
-
-                  <label className="px-4 py-2 bg-blue-600 text-white rounded-xl cursor-pointer text-[10px] font-black uppercase hover:bg-blue-700 transition-colors">
+                  <label className="px-4 py-2 bg-blue-600 text-white rounded-xl cursor-pointer text-[10px] font-black uppercase hover:bg-blue-700 transition-colors shadow-sm">
                     Image
                     <input
                       type="file"
@@ -151,17 +165,15 @@ export default function CreatePoll() {
                   </label>
                 </div>
               </div>
+
               {opt.preview && (
                 <div className="relative w-full h-32 rounded-xl overflow-hidden bg-black">
-                   <img
-                    src={opt.preview}
-                    className="w-full h-full object-contain"
-                    alt=""
-                  />
+                  <img src={opt.preview} className="w-full h-full object-contain" alt="" />
                 </div>
               )}
             </div>
           ))}
+
           {options.length < 4 && (
             <button
               type="button"
@@ -175,17 +187,13 @@ export default function CreatePoll() {
 
         <button
           disabled={loading}
-          className="w-full p-4 bg-blue-600 text-white rounded-2xl font-black uppercase shadow-lg disabled:opacity-50"
+          className="w-full p-4 bg-blue-600 text-white rounded-2xl font-black uppercase shadow-lg disabled:opacity-50 hover:bg-blue-700 transition-all transform active:scale-[0.98]"
         >
           {loading ? "Posting..." : "Share Poll"}
         </button>
       </form>
 
-      <Login
-        isOpen={isLoginOpen}
-        onClose={() => setIsLoginOpen(false)}
-        isDark={isDark}
-      />
+      <Login isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} isDark={isDark} />
     </div>
-  );
+  )
 }

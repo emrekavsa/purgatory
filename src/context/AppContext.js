@@ -8,6 +8,7 @@ export function AppProvider({ children }) {
   const [user, setUser] = useState(null)
   const [isDark, setIsDark] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [realtimeTrigger, setRealtimeTrigger] = useState(0)
 
   const fetchProfile = async (sessionUser) => {
     if (!sessionUser) return null
@@ -16,7 +17,7 @@ export function AppProvider({ children }) {
       .select('username')
       .eq('id', sessionUser.id)
       .single()
-    
+
     return { ...sessionUser, username: data?.username || 'User' }
   }
 
@@ -41,29 +42,34 @@ export function AppProvider({ children }) {
 
     getInitialSession()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') {
         setUser(null)
-      } else if (session?.user) {
+        setLoading(false)
+      } else if (event === 'SIGNED_IN' && session?.user) {
         const fullUser = await fetchProfile(session.user)
         setUser(fullUser)
-      } else {
-        setUser(null)
+        setLoading(false)
       }
-      setLoading(false)
     })
+
+    const channel = supabase
+      .channel('global-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, () => {
+        setRealtimeTrigger(prev => prev + 1)
+      })
+      .subscribe()
 
     return () => {
       themeQuery.removeEventListener('change', handleTheme)
-      subscription.unsubscribe()
+      authSub.unsubscribe()
+      supabase.removeChannel(channel)
     }
   }, [])
 
   return (
-    <AppContext.Provider value={{ user, isDark, loading }}>
-      <div className={isDark ? 'dark' : ''}>
-        {children}
-      </div>
+    <AppContext.Provider value={{ user, isDark, loading, realtimeTrigger }}>
+      {children}
     </AppContext.Provider>
   )
 }
