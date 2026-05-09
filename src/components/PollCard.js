@@ -58,7 +58,7 @@ export default function PollCard({ poll, user, onVote }) {
     : 'flex flex-col gap-2'
 
   return (
-    <div className={`p-5 border rounded-3xl transition-all ${
+    <div className={`group p-5 border rounded-3xl transition-all ${
       isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-gray-200 text-black'
     }`}>
 
@@ -75,8 +75,15 @@ export default function PollCard({ poll, user, onVote }) {
 
         <div className="flex items-center gap-2">
           {user?.id === poll.user_id && (
-            <button onClick={handleDelete} className="p-1.5 hover:bg-red-500/10 rounded-lg transition-colors">
-              <img src="/delete-icon.svg" alt="Delete" className="w-3.5 h-3.5 opacity-30 hover:opacity-100 dark:invert" />
+            <button 
+              onClick={handleDelete} 
+              className="transition-all opacity-0 group-hover:opacity-100 outline-none"
+            >
+              <img 
+                src="/delete-icon.svg" 
+                alt="Delete" 
+                className="w-4 h-4 opacity-40 hover:opacity-100 transition-opacity" 
+              />
             </button>
           )}
           <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
@@ -100,7 +107,7 @@ export default function PollCard({ poll, user, onVote }) {
               key={opt.id}
               onClick={() => onVote(poll.id, opt.id)}
               disabled={hasVoted}
-              className={`group relative flex overflow-hidden border rounded-2xl min-h-[56px] transition-all
+              className={`group/opt relative flex overflow-hidden border rounded-2xl min-h-[56px] transition-all
                 ${hasImages ? 'flex-col' : 'flex-row items-center p-4'}
                 ${isDark ? 'border-zinc-800' : 'border-gray-100'}
                 ${!hasVoted ? (isDark ? 'hover:bg-zinc-800' : 'hover:bg-gray-50') : 'cursor-default'}

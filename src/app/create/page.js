@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase"
 import { useApp } from "@/context/AppContext"
 import Login from "@/components/Login"
 
-const CATEGORIES = ["General", "Tech", "Sports", "Gaming", "Politics", "Entertainment"]
+const CATEGORIES = ["General", "Tech", "Sports", "Gaming", "Cinema & Music", "Lifestyle"]
 
 export default function CreatePoll() {
   const { user, isDark, loading: authLoading } = useApp()

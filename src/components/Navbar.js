@@ -30,9 +30,11 @@ export default function Navbar({ onShowLogin }) {
       isDark ? "bg-black border-zinc-800 text-white" : "bg-white border-gray-100 text-black"
     }`}>
       
-      <div className="w-[100px] md:w-[180px] flex items-center justify-start gap-3">
-        <Link href="/" className="transition-opacity hover:opacity-80">
-          <img src="/poll-icon.svg" alt="Home" className={`w-8 h-8 ${isDark ? 'invert' : ''}`} />
+      <div className="w-[140px] md:w-[240px] flex items-center justify-start">
+        <Link href="/" className="flex items-center group transition-opacity hover:opacity-80">
+          <span className="text-4xl lowercase tracking-wide select-none font-[family-name:var(--font-aktura)] pt-1">
+            purgatory
+          </span>
         </Link>
       </div>
 
@@ -56,24 +58,49 @@ export default function Navbar({ onShowLogin }) {
         />
       </div>
 
-      <div className="w-[100px] md:w-[180px] flex items-center justify-end gap-2">
+      <div className="w-[100px] md:w-[240px] flex items-center justify-end gap-2">
         {!user ? (
-          <button onClick={onShowLogin} className="p-2 px-5 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700">
+          <button 
+            onClick={onShowLogin} 
+            className="p-2 px-5 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all active:scale-95"
+          >
             Log In
           </button>
         ) : (
           <>
-            <Link href="/create" className="p-2 px-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 hidden md:block">
+            <Link 
+              href="/create" 
+              className="p-2 px-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 hidden md:block transition-all active:scale-95"
+            >
               + Create
             </Link>
             <div className="relative">
-              <button onClick={() => setIsOpen(!isOpen)} className={`w-9 h-9 border rounded-full font-bold flex items-center justify-center ${isDark ? "bg-zinc-800 border-zinc-700" : "bg-gray-100 border-gray-300"}`}>
+              <button 
+                onClick={() => setIsOpen(!isOpen)} 
+                className={`w-9 h-9 border rounded-full font-bold flex items-center justify-center transition-all ${
+                  isDark ? "bg-zinc-800 border-zinc-700 hover:bg-zinc-700" : "bg-gray-100 border-gray-300 hover:bg-gray-200"
+                }`}
+              >
                 {username[0].toUpperCase()}
               </button>
+              
               {isOpen && (
-                <div className={`absolute right-0 mt-2 w-48 border shadow-2xl rounded-xl p-2 z-50 ${isDark ? "bg-zinc-900 border-zinc-800" : "bg-white border-gray-200"}`}>
-                  <Link href={`/profile/${username}`} onClick={() => setIsOpen(false)} className="block w-full text-left p-2 hover:bg-gray-500/10 rounded-lg text-sm font-bold">View Profile</Link>
-                  <button onClick={handleLogout} className="w-full text-left p-2 text-red-500 hover:bg-red-500/10 rounded-lg text-sm font-bold">Sign Out</button>
+                <div className={`absolute right-0 mt-2 w-48 border shadow-2xl rounded-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 ${
+                  isDark ? "bg-zinc-900 border-zinc-800" : "bg-white border-gray-200"
+                }`}>
+                  <Link 
+                    href={`/profile/${username}`} 
+                    onClick={() => setIsOpen(false)} 
+                    className="block w-full text-left p-2 hover:bg-gray-500/10 rounded-lg text-sm font-bold"
+                  >
+                    View Profile
+                  </Link>
+                  <button 
+                    onClick={handleLogout} 
+                    className="w-full text-left p-2 text-red-500 hover:bg-red-500/10 rounded-lg text-sm font-bold"
+                  >
+                    Sign Out
+                  </button>
                 </div>
               )}
             </div>

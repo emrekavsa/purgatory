@@ -1,1 +1,1 @@
-added poll sorting feature.
+added svg icons for each category, added a logo to navbar and fixed delete icon appearence on pollcards.

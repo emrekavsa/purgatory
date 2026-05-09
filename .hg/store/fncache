@@ -35,3 +35,10 @@ data/src/components/Sidebar.js.i
 data/src/components/ClientShell.js.i
 data/src/lib/utils.js.i
 data/src/lib/api.js.i
+data/public/fonts/Aktura-Regular.woff.i
+data/public/tech.svg.i
+data/public/fonts/Aktura-Regular.woff2.i
+data/public/fonts/Aktura-Regular.ttf.i
+data/public/gaming.svg.i
+data/public/movie.svg.i
+data/public/sports.svg.i
