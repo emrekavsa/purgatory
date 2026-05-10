@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useApp } from "@/context/AppContext"
+import { createPollAction } from "@/lib/actions"
 
 const CATEGORIES = ["General", "Tech", "Sports", "Gaming", "Movies & TV Shows"]
 
@@ -55,20 +56,16 @@ export default function CreatePoll() {
 
     setLoading(true)
     try {
-      const { data: poll, error: pollErr } = await supabase
-        .from("polls")
-        .insert([{ title, user_id: user.id, category: category }])
-        .select()
-        .single()
-      if (pollErr) throw pollErr
-
-      for (let i = 0; i < options.length; i++) {
+      // 1. Resimleri Supabase Storage'a Yükle (Promise.all ile paralel ve hızlı)
+      const optionsData = await Promise.all(options.map(async (opt, i) => {
         let imageUrl = null
-        if (options[i].image) {
-          const fileName = `${poll.id}/${Date.now()}-${i}.jpg`
+        if (opt.image) {
+          const folderName = `${user.id}-${Date.now()}`
+          const fileName = `${folderName}/${i}.jpg`
           const { error: uploadErr } = await supabase.storage
             .from("poll-images")
-            .upload(fileName, options[i].image)
+            .upload(fileName, opt.image)
+          
           if (uploadErr) throw uploadErr
 
           const { data } = supabase.storage
@@ -77,12 +74,17 @@ export default function CreatePoll() {
           imageUrl = data.publicUrl
         }
 
-        await supabase.from("poll_options").insert([{
-          poll_id: poll.id,
-          content: options[i].content,
-          image_url: imageUrl,
-        }])
-      }
+        return { content: opt.content, image_url: imageUrl }
+      }))
+
+      // 2. Veritabanına Yazma İşlemini Sunucuya (Server Action) Devret
+      const result = await createPollAction(
+        { title, category, user_id: user.id }, 
+        optionsData
+      )
+
+      if (!result.success) throw new Error(result.error)
+
       router.push("/")
     } catch (err) {
       alert(err.message)

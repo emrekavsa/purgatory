@@ -8,7 +8,6 @@ export function AppProvider({ children }) {
   const [user, setUser] = useState(null)
   const [isDark, setIsDark] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [realtimeTrigger, setRealtimeTrigger] = useState(0)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
 
   const fetchProfile = async (sessionUser) => {
@@ -57,25 +56,14 @@ export function AppProvider({ children }) {
       }
     })
 
-    const channel = supabase
-      .channel('global-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, () => {
-        setRealtimeTrigger(prev => prev + 1)
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'polls' }, () => {
-        setRealtimeTrigger(prev => prev + 1)
-      })
-      .subscribe()
-
     return () => {
       themeQuery.removeEventListener('change', handleTheme)
       authSub.unsubscribe()
-      supabase.removeChannel(channel)
     }
   }, [])
 
   return (
-    <AppContext.Provider value={{ user, isDark, loading, realtimeTrigger, isLoginOpen, setIsLoginOpen, requireLogin }}>
+    <AppContext.Provider value={{ user, isDark, loading, isLoginOpen, setIsLoginOpen, requireLogin }}>
       {children}
     </AppContext.Provider>
   )

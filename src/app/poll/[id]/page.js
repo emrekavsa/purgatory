@@ -5,11 +5,13 @@ import { supabase } from '@/lib/supabase'
 import { useApp } from '@/context/AppContext'
 import PollCard from '@/components/PollCard'
 import { formatRelativeTime } from '@/lib/utils'
-import { handleVote, POLL_SELECT } from '@/lib/api'
+import { createCommentAction, deleteCommentAction, updateCommentAction, voteAction } from '@/lib/actions'
+
+const POLL_SELECT = '*, profiles(username, id, avatar_url), poll_options(id, content, image_url, votes(user_id)), comments(id)'
 
 export default function PollDetailPage() {
   const { id } = useParams()
-  const { user, isDark, realtimeTrigger, requireLogin } = useApp()
+  const { user, isDark, requireLogin } = useApp()
 
   const [poll, setPoll] = useState(null)
   const [comments, setComments] = useState([])
@@ -45,10 +47,23 @@ export default function PollDetailPage() {
 
   useEffect(() => {
     if (id) fetchData()
-  }, [id, realtimeTrigger])
+  }, [id])
 
-  const onVote = (pollId, optionId) =>
-    handleVote(pollId, optionId, user, (updatedPoll) => setPoll(updatedPoll), requireLogin)
+  const onVote = async (pollId, optionId) => {
+    if (!user) return requireLogin()
+    
+    const result = await voteAction({ poll_id: pollId, option_id: optionId, user_id: user.id })
+
+    if (result.success) {
+      fetchData()
+    } else {
+      if (result.error.includes('duplicate key') || result.error.includes('unique constraint')) {
+        alert('You have already voted!')
+      } else {
+        alert(result.error)
+      }
+    }
+  }
 
   const handleCommentSubmit = async (e, parentId = null) => {
     if (e) e.preventDefault()
@@ -56,31 +71,49 @@ export default function PollDetailPage() {
     if (!user || !content.trim() || submitting) return
 
     setSubmitting(true)
-    const { error } = await supabase
-      .from('comments')
-      .insert([{ poll_id: id, user_id: user.id, content: content.trim(), parent_id: parentId }])
+    
+    const result = await createCommentAction({
+      poll_id: id,
+      user_id: user.id,
+      content: content.trim(),
+      parent_id: parentId
+    })
 
-    if (!error) {
+    if (result.success) {
       setNewComment('')
       setReplyContent('')
       setReplyingTo(null)
+      fetchData()
+    } else {
+      alert(result.error)
     }
     setSubmitting(false)
   }
 
   const handleDeleteComment = async (commentId) => {
     if (!confirm('Delete this comment?')) return
-    await supabase.from('comments').delete().eq('id', commentId).eq('user_id', user.id)
+    
+    const result = await deleteCommentAction({ comment_id: commentId, user_id: user.id })
+    if (result.success) fetchData()
+    else alert(result.error)
   }
 
   const handleUpdateComment = async (commentId) => {
     const updatedText = editContent.trim()
     if (!updatedText) return
-    const { error } = await supabase
-      .from('comments')
-      .update({ content: updatedText, updated_at: new Date().toISOString() })
-      .eq('id', commentId)
-    if (!error) setEditingId(null)
+    
+    const result = await updateCommentAction({
+      comment_id: commentId,
+      user_id: user.id,
+      content: updatedText
+    })
+
+    if (result.success) {
+      setEditingId(null)
+      fetchData()
+    } else {
+      alert(result.error)
+    }
   }
 
   const renderComment = (comment, allComments, depth = 0) => {

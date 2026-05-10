@@ -1,1 +1,1 @@
-centralized login component and removed dark mode prop
+implemented next.js server actions and refactored voting

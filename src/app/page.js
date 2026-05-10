@@ -4,13 +4,15 @@ import { useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useApp } from "@/context/AppContext"
 import PollCard from "@/components/PollCard"
-import { handleVote, POLL_SELECT } from "@/lib/api"
+import { voteAction } from "@/lib/actions"
+
+const POLL_SELECT = '*, profiles(username, id, avatar_url), poll_options(id, content, image_url, votes(user_id)), comments(id)'
 
 export default function Home() {
   const searchParams = useSearchParams()
   const category = searchParams.get('c') 
   
-  const { user, isDark, loading: authLoading, realtimeTrigger, requireLogin } = useApp()
+  const { user, isDark, loading: authLoading, requireLogin } = useApp()
   const [polls, setPolls] = useState([])
   const [dataLoading, setDataLoading] = useState(false)
   const [sortBy, setSortBy] = useState('newest')
@@ -36,16 +38,31 @@ export default function Home() {
 
   useEffect(() => {
     fetchPolls()
-  }, [realtimeTrigger, category])
+  }, [category])
 
-  const onVote = (pollId, optionId) =>
-    handleVote(
-      pollId, 
-      optionId, 
-      user, 
-      (updatedPoll) => setPolls(prev => prev.map(p => p.id === pollId ? updatedPoll : p)), 
-      requireLogin
-    )
+  const onVote = async (pollId, optionId) => {
+    if (!user) return requireLogin()
+    
+    const result = await voteAction({ poll_id: pollId, option_id: optionId, user_id: user.id })
+
+    if (result.success) {
+      const { data: updatedPoll } = await supabase
+        .from('polls')
+        .select(POLL_SELECT)
+        .eq('id', pollId)
+        .single()
+
+      if (updatedPoll) {
+        setPolls(prev => prev.map(p => p.id === pollId ? updatedPoll : p))
+      }
+    } else {
+      if (result.error.includes('duplicate key') || result.error.includes('unique constraint')) {
+        alert('You have already voted!')
+      } else {
+        alert(result.error)
+      }
+    }
+  }
 
   if (authLoading) return null
 

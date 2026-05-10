@@ -4,7 +4,9 @@ import { useParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useApp } from "@/context/AppContext"
 import PollCard from "@/components/PollCard"
-import { handleVote, POLL_SELECT } from "@/lib/api"
+import { voteAction } from "@/lib/actions"
+
+const POLL_SELECT = '*, profiles(username, id, avatar_url), poll_options(id, content, image_url, votes(user_id)), comments(id)'
 
 export default function ProfilePage() {
   const { username } = useParams()
@@ -79,14 +81,33 @@ export default function ProfilePage() {
     }
   }
 
-  const onVote = (pollId, optionId) =>
-    handleVote(
-      pollId, 
-      optionId, 
-      currentUser, 
-      (updatedPoll) => setPolls(prev => prev.map(p => p.id === pollId ? updatedPoll : p)), 
-      requireLogin
-    )
+  const onVote = async (pollId, optionId) => {
+    if (!currentUser) return requireLogin()
+    
+    const result = await voteAction({ 
+      poll_id: pollId, 
+      option_id: optionId, 
+      user_id: currentUser.id 
+    })
+
+    if (result.success) {
+      const { data: updatedPoll } = await supabase
+        .from('polls')
+        .select(POLL_SELECT)
+        .eq('id', pollId)
+        .single()
+
+      if (updatedPoll) {
+        setPolls(prev => prev.map(p => p.id === pollId ? updatedPoll : p))
+      }
+    } else {
+      if (result.error.includes('duplicate key') || result.error.includes('unique constraint')) {
+        alert('You have already voted!')
+      } else {
+        alert(result.error)
+      }
+    }
+  }
 
   if (loading) return null
 
@@ -99,7 +120,7 @@ export default function ProfilePage() {
               <img src={profile.avatar_url} alt={username} className="w-full h-full object-cover" />
             ) : (
               <div className={`w-full h-full flex items-center justify-center text-3xl font-black ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
-                {username[0].toUpperCase()}
+                {username ? username[0].toUpperCase() : 'U'}
               </div>
             )}
           </div>
