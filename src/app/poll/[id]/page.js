@@ -51,8 +51,14 @@ export default function PollDetailPage() {
 
   const onVote = async (pollId, optionId) => {
     if (!user) return requireLogin()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) return requireLogin()
 
-    const result = await voteAction({ poll_id: pollId, option_id: optionId, user_id: user.id })
+    const result = await voteAction({
+      poll_id: pollId,
+      option_id: optionId,
+      auth_token: session.access_token,
+    })
 
     if (result.success) {
       fetchData()
@@ -69,14 +75,16 @@ export default function PollDetailPage() {
     if (e) e.preventDefault()
     const content = parentId ? replyContent : newComment
     if (!user || !content.trim() || submitting) return
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) return requireLogin()
 
     setSubmitting(true)
 
     const result = await createCommentAction({
       poll_id: id,
-      user_id: user.id,
       content: content.trim(),
       parent_id: parentId || null,
+      auth_token: session.access_token,
     })
 
     if (result.success) {
@@ -92,8 +100,13 @@ export default function PollDetailPage() {
 
   const handleDeleteComment = async (commentId) => {
     if (!confirm('Delete this comment?')) return
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) return requireLogin()
 
-    const result = await deleteCommentAction({ comment_id: commentId, user_id: user.id })
+    const result = await deleteCommentAction({
+      comment_id: commentId,
+      auth_token: session.access_token,
+    })
     if (result.success) fetchData()
     else alert(result.error)
   }
@@ -101,11 +114,13 @@ export default function PollDetailPage() {
   const handleUpdateComment = async (commentId) => {
     const updatedText = editContent.trim()
     if (!updatedText) return
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) return requireLogin()
 
     const result = await updateCommentAction({
       comment_id: commentId,
-      user_id: user.id,
       content: updatedText,
+      auth_token: session.access_token,
     })
 
     if (result.success) {
@@ -229,7 +244,6 @@ export default function PollDetailPage() {
           poll={poll}
           user={user}
           onVote={onVote}
-          onCommentClick={() => commentInputRef.current?.focus()}
         />
 
         <div className={`mt-8 p-6 rounded-3xl border shadow-sm ${isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-gray-100 text-black'}`}>

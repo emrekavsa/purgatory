@@ -10,7 +10,7 @@ export default function ClientShell({ children }) {
   return (
     <div className={`${isDark ? 'bg-black text-white' : 'bg-white text-black'} transition-colors min-h-screen`}>
       <div className="flex flex-col min-h-screen relative">
-        <Navbar onShowLogin={() => setIsLoginOpen(true)} />
+        <Navbar />
 
         <div className="flex flex-1 relative">
           <Sidebar />
