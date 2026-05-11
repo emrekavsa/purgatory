@@ -4,8 +4,8 @@ import { z } from "zod"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServerKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_SECRET_KEY
+  process.env.SUPABASE_SECRET_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 
 if (!supabaseUrl || !supabaseServerKey) {
   throw new Error(
@@ -60,7 +60,6 @@ const deletePollSchema = z.object({
 })
 
 async function getAuthenticatedUserId(authToken) {
-  // We verify the JWT on the server and derive user_id from trusted auth data.
   const { data, error } = await supabase.auth.getUser(authToken)
   if (error || !data?.user?.id) {
     throw new Error("Unauthorized")
@@ -122,7 +121,6 @@ export async function deletePollAction(data) {
     }
 
     const { error } = await query
-
     if (error) throw new Error(error.message)
 
     return { success: true }
@@ -179,7 +177,6 @@ export async function createCommentAction(commentData) {
     }])
 
     if (error) throw new Error(error.message)
-
     return { success: true }
   } catch (error) {
     return { success: false, error: error.message }
@@ -206,7 +203,6 @@ export async function deleteCommentAction(data) {
     }
 
     const { error } = await query
-
     if (error) throw new Error(error.message)
 
     return { success: true }
@@ -228,7 +224,6 @@ export async function updateCommentAction(data) {
       .eq("user_id", userId)
 
     if (error) throw new Error(error.message)
-
     return { success: true }
   } catch (error) {
     return { success: false, error: error.message }
