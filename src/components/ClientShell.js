@@ -3,6 +3,7 @@ import { useApp } from "@/context/AppContext"
 import Navbar from "@/components/Navbar"
 import Sidebar from "@/components/Sidebar"
 import Login from "@/components/Login"
+import BottomNav from "@/components/BottomNav"
 
 export default function ClientShell({ children }) {
   const { isDark, isLoginOpen, setIsLoginOpen } = useApp()
@@ -14,10 +15,12 @@ export default function ClientShell({ children }) {
 
         <div className="flex flex-1 relative">
           <Sidebar />
-          <main className="flex-1 w-full min-w-0">
+          <main className="flex-1 w-full min-w-0 pb-20 md:pb-0">
             {children}
           </main>
         </div>
+
+        <BottomNav />
 
         <Login
           isOpen={isLoginOpen}
