@@ -6,8 +6,7 @@ import { useApp } from '@/context/AppContext'
 import PollCard from '@/components/PollCard'
 import { formatRelativeTime } from '@/lib/utils'
 import { createCommentAction, deleteCommentAction, updateCommentAction, voteAction } from '@/lib/actions'
-
-const POLL_SELECT = '*, profiles(username, id, avatar_url), poll_options(id, content, image_url, votes(user_id)), comments(id)'
+import { POLL_SELECT } from '@/app/page'
 
 export default function PollDetailPage() {
   const { id } = useParams()
@@ -51,13 +50,13 @@ export default function PollDetailPage() {
 
   const onVote = async (pollId, optionId) => {
     if (!user) return requireLogin()
-    
+
     const result = await voteAction({ poll_id: pollId, option_id: optionId, user_id: user.id })
 
     if (result.success) {
       fetchData()
     } else {
-      if (result.error.includes('duplicate key') || result.error.includes('unique constraint')) {
+      if (result.alreadyVoted) {
         alert('You have already voted!')
       } else {
         alert(result.error)
@@ -71,12 +70,12 @@ export default function PollDetailPage() {
     if (!user || !content.trim() || submitting) return
 
     setSubmitting(true)
-    
+
     const result = await createCommentAction({
       poll_id: id,
       user_id: user.id,
       content: content.trim(),
-      parent_id: parentId
+      parent_id: parentId || null,
     })
 
     if (result.success) {
@@ -92,7 +91,7 @@ export default function PollDetailPage() {
 
   const handleDeleteComment = async (commentId) => {
     if (!confirm('Delete this comment?')) return
-    
+
     const result = await deleteCommentAction({ comment_id: commentId, user_id: user.id })
     if (result.success) fetchData()
     else alert(result.error)
@@ -101,11 +100,11 @@ export default function PollDetailPage() {
   const handleUpdateComment = async (commentId) => {
     const updatedText = editContent.trim()
     if (!updatedText) return
-    
+
     const result = await updateCommentAction({
       comment_id: commentId,
       user_id: user.id,
-      content: updatedText
+      content: updatedText,
     })
 
     if (result.success) {
@@ -116,7 +115,11 @@ export default function PollDetailPage() {
     }
   }
 
-  const renderComment = (comment, allComments, depth = 0) => {
+  // visitedIds: sonsuz döngüye karşı koruma
+  const renderComment = (comment, allComments, depth = 0, visitedIds = new Set()) => {
+    if (visitedIds.has(comment.id) || depth > 6) return null
+    visitedIds.add(comment.id)
+
     const replies = allComments.filter(r => r.parent_id === comment.id)
     const isEdited = comment.updated_at && (new Date(comment.updated_at) - new Date(comment.created_at) > 1000)
 
@@ -202,7 +205,7 @@ export default function PollDetailPage() {
             )}
           </div>
         </div>
-        {replies.map(r => renderComment(r, allComments, depth + 1))}
+        {replies.map(r => renderComment(r, allComments, depth + 1, new Set(visitedIds)))}
       </div>
     )
   }

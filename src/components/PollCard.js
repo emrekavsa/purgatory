@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatRelativeTime } from '@/lib/utils'
 import { useApp } from '@/context/AppContext'
-import { supabase } from '@/lib/supabase'
+import { deletePollAction } from '@/lib/actions'
 
 export default function PollCard({ poll, user, onVote }) {
   const router = useRouter()
@@ -31,17 +31,14 @@ export default function PollCard({ poll, user, onVote }) {
   const handleDelete = async (e) => {
     e.stopPropagation()
     if (!confirm('Are you sure you want to delete this poll?')) return
-    
-    const { error } = await supabase
-      .from('polls')
-      .delete()
-      .eq('id', poll.id)
-      .eq('user_id', user.id)
 
-    if (error) {
-      alert(error.message)
-    } else {
+    // Artık direkt supabase değil, Server Action üzerinden
+    const result = await deletePollAction({ poll_id: poll.id, user_id: user.id })
+
+    if (result.success) {
       router.refresh()
+    } else {
+      alert(result.error)
     }
   }
 
@@ -79,14 +76,14 @@ export default function PollCard({ poll, user, onVote }) {
 
         <div className="flex items-center gap-2">
           {user?.id === poll.user_id && (
-            <button 
-              onClick={handleDelete} 
+            <button
+              onClick={handleDelete}
               className="transition-all opacity-0 group-hover:opacity-100 outline-none"
             >
-              <img 
-                src="/delete-icon.svg" 
-                alt="Delete" 
-                className="w-4 h-4 opacity-40 hover:opacity-100 transition-opacity" 
+              <img
+                src="/delete-icon.svg"
+                alt="Delete"
+                className="w-4 h-4 opacity-40 hover:opacity-100 transition-opacity"
               />
             </button>
           )}

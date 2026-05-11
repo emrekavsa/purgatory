@@ -6,12 +6,12 @@ import { useApp } from "@/context/AppContext"
 import PollCard from "@/components/PollCard"
 import { voteAction } from "@/lib/actions"
 
-const POLL_SELECT = '*, profiles(username, id, avatar_url), poll_options(id, content, image_url, votes(user_id)), comments(id)'
+export const POLL_SELECT = '*, profiles(username, id, avatar_url), poll_options(id, content, image_url, votes(user_id)), comments(id)'
 
 export default function Home() {
   const searchParams = useSearchParams()
-  const category = searchParams.get('c') 
-  
+  const category = searchParams.get('c')
+
   const { user, isDark, loading: authLoading, requireLogin } = useApp()
   const [polls, setPolls] = useState([])
   const [dataLoading, setDataLoading] = useState(false)
@@ -42,7 +42,7 @@ export default function Home() {
 
   const onVote = async (pollId, optionId) => {
     if (!user) return requireLogin()
-    
+
     const result = await voteAction({ poll_id: pollId, option_id: optionId, user_id: user.id })
 
     if (result.success) {
@@ -56,7 +56,8 @@ export default function Home() {
         setPolls(prev => prev.map(p => p.id === pollId ? updatedPoll : p))
       }
     } else {
-      if (result.error.includes('duplicate key') || result.error.includes('unique constraint')) {
+      // Düzeltildi: string match yerine alreadyVoted flag
+      if (result.alreadyVoted) {
         alert('You have already voted!')
       } else {
         alert(result.error)
