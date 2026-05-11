@@ -1,4 +1,5 @@
 "use client"
+import { Suspense } from "react"
 import { useApp } from "@/context/AppContext"
 import Navbar from "@/components/Navbar"
 import Sidebar from "@/components/Sidebar"
@@ -13,9 +14,13 @@ export default function ClientShell({ children }) {
         <Navbar onShowLogin={() => setIsLoginOpen(true)} />
 
         <div className="flex flex-1 relative">
-          <Sidebar />
+          <Suspense>
+            <Sidebar />
+          </Suspense>
           <main className="flex-1 w-full min-w-0">
-            {children}
+            <Suspense>
+              {children}
+            </Suspense>
           </main>
         </div>
 

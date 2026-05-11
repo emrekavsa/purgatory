@@ -2,7 +2,6 @@ import { AppProvider } from '@/context/AppContext'
 import "../styles/globals.css"
 import ClientShell from '@/components/ClientShell'
 import localFont from 'next/font/local'
-import { Suspense } from 'react'
 
 const aktura = localFont({
   src: '../../public/fonts/Aktura-Regular.woff2',
@@ -19,11 +18,9 @@ export default function RootLayout({ children }) {
     <html lang="en" className={aktura.variable}>
       <body>
         <AppProvider>
-          <Suspense>
-            <ClientShell>
-              {children}
-            </ClientShell>
-          </Suspense>
+          <ClientShell>
+            {children}
+          </ClientShell>
         </AppProvider>
       </body>
     </html>
