@@ -3,10 +3,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatRelativeTime } from '@/lib/utils'
 import { useApp } from '@/context/AppContext'
-import { supabase } from '@/lib/supabase'
 import ReportModal from '@/components/ReportModal'
+// GÜVENLİK FİX: Silme işlemini artık Server Action üzerinden yapıyoruz
+import { deletePollAction } from '@/lib/actions' 
 
-export default function PollCard({ poll, user, onVote }) {
+export default function PollCard({ poll, user, onVote, onDelete }) {
   const router = useRouter()
   const { isDark } = useApp()
   const [copied, setCopied] = useState(false)
@@ -30,19 +31,23 @@ export default function PollCard({ poll, user, onVote }) {
 
   const hasVoted = !!userVote
 
+  // GÜVENLİK FİX: Client-side silme yerine Server Action'a devredildi
   const handleDelete = async (e) => {
     e.stopPropagation()
     if (!confirm('Are you sure you want to delete this poll?')) return
     
-    const { error } = await supabase
-      .from('polls')
-      .delete()
-      .eq('id', poll.id)
+    // İşlemi yapanın (user.id) kimliği de server'a gidiyor
+    const res = await deletePollAction(user.id, poll.id)
 
-    if (error) {
-      alert(error.message)
+    if (res.success) {
+      // Eğer Home sayfasından çağrıldıysa state'i anında güncelle
+      if (onDelete) {
+         onDelete(poll.id)
+      } else {
+         router.refresh()
+      }
     } else {
-      router.refresh()
+      alert("Failed to delete: " + res.error)
     }
   }
 
@@ -92,7 +97,7 @@ export default function PollCard({ poll, user, onVote }) {
             </button>
           )}
 
-          {/* SİLME BUTONU GÜNCELLENDİ: SAHİBİ VEYA ADMİN GÖREBİLİR */}
+          {/* SİLME BUTONU: SAHİBİ VEYA ADMİN GÖREBİLİR */}
           {(user?.id === poll.user_id || user?.is_admin) && (
             <button onClick={handleDelete} className="transition-all opacity-0 group-hover:opacity-100 outline-none">
               <img src="/delete-icon.svg" alt="Delete" className="w-4 h-4 opacity-40 hover:opacity-100 transition-opacity" />

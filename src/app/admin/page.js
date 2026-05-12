@@ -47,8 +47,10 @@ export default function AdminPage() {
   }, [user, activeTab])
 
   const handleAction = async (reportId) => {
-    const res = await resolveReportAction(reportId)
+    // GÜVENLİK FİX: İşlemi yapanın (user.id) kimliği de gönderiliyor.
+    const res = await resolveReportAction(user.id, reportId)
     if (res.success) fetchReports()
+    else alert(res.error) // Hata varsa admin görsün
   }
 
   if (!user?.is_admin) return <div className="p-20 text-center">UNAUTHORIZED</div>
@@ -115,8 +117,13 @@ export default function AdminPage() {
                        if(confirm("Ban this user?")) {
                           const targetUserId = activeTab === 'polls' ? report.polls?.user_id : report.comments?.user_id;
                           if (targetUserId) {
-                             await banUserAction(targetUserId);
-                             handleAction(report.id);
+                             // GÜVENLİK FİX: Admin'in kimliği (user.id) de server'a gönderiliyor.
+                             const res = await banUserAction(user.id, targetUserId);
+                             if(res.success) {
+                               handleAction(report.id);
+                             } else {
+                               alert(res.error); // Hata varsa göster
+                             }
                           }
                        }
                     }}

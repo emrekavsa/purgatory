@@ -32,12 +32,14 @@ const updateCommentSchema = z.object({
   content: z.string().min(1, "Comment cannot be empty")
 })
 
-// GÜNCELLENDİ: Artık sadece poll_id değil, comment_id de alabiliyor.
+// GÜVENLİK FİX: .refine ile poll_id veya comment_id'den en az birinin dolu olması zorunlu kılındı.
 const reportSchema = z.object({
   poll_id: z.string().uuid("Invalid poll ID").optional(),
   comment_id: z.string().uuid("Invalid comment ID").optional(),
   reported_by: z.string().uuid("Invalid user ID"),
   reason: z.string().optional()
+}).refine(data => data.poll_id || data.comment_id, {
+  message: "Either poll_id or comment_id must be provided"
 })
 
 export async function createPollAction(pollData, optionsData) {
@@ -136,7 +138,6 @@ export async function updateCommentAction(data) {
   }
 }
 
-// GÜNCELLENDİ: İsmi "reportAction" oldu ve duruma göre anket veya yorum raporlayabiliyor
 export async function reportAction(data) {
   try {
     const validatedData = reportSchema.parse(data)
@@ -147,7 +148,6 @@ export async function reportAction(data) {
       status: 'pending'
     }
 
-    // Modal'dan ne geldiyse onu veritabanına yaz
     if (validatedData.poll_id) insertData.poll_id = validatedData.poll_id
     if (validatedData.comment_id) insertData.comment_id = validatedData.comment_id
 
@@ -162,8 +162,21 @@ export async function reportAction(data) {
   }
 }
 
-export async function banUserAction(userId, status = true) {
+// GÜVENLİK FİX: Sadece gerçek adminler DB'ye ban atabilir.
+export async function banUserAction(adminId, userId, status = true) {
   try {
+    if (!adminId) throw new Error("Unauthorized: Admin ID is required")
+
+    // 1. İşlemi tetikleyen kişi gerçekten admin mi kontrol et
+    const { data: adminCheck } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', adminId)
+      .single()
+
+    if (!adminCheck?.is_admin) throw new Error("CRITICAL: Unauthorized admin action attempt.")
+
+    // 2. Yetki doğrulandı, işlemi yap
     const { error } = await supabase
       .from('profiles')
       .update({ isbanned: status })
@@ -176,8 +189,19 @@ export async function banUserAction(userId, status = true) {
   }
 }
 
-export async function resolveReportAction(reportId) {
+// GÜVENLİK FİX: Sadece gerçek adminler raporu kapatabilir.
+export async function resolveReportAction(adminId, reportId) {
   try {
+    if (!adminId) throw new Error("Unauthorized: Admin ID is required")
+
+    const { data: adminCheck } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', adminId)
+      .single()
+
+    if (!adminCheck?.is_admin) throw new Error("CRITICAL: Unauthorized admin action attempt.")
+
     const { error } = await supabase
       .from('reports')
       .update({ status: 'resolved' })
@@ -190,8 +214,19 @@ export async function resolveReportAction(reportId) {
   }
 }
 
-export async function deletePollAction(pollId) {
+// GÜVENLİK FİX: Sadece gerçek adminler anketi silebilir.
+export async function deletePollAction(adminId, pollId) {
   try {
+    if (!adminId) throw new Error("Unauthorized: Admin ID is required")
+
+    const { data: adminCheck } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', adminId)
+      .single()
+
+    if (!adminCheck?.is_admin) throw new Error("CRITICAL: Unauthorized admin action attempt.")
+
     const { error } = await supabase
       .from('polls')
       .delete()

@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useApp } from "@/context/AppContext"
@@ -7,6 +7,7 @@ import PollCard from "@/components/PollCard"
 import { voteAction } from "@/lib/actions"
 
 const POLL_SELECT = '*, profiles(username, id, avatar_url), poll_options(id, content, image_url, votes(user_id)), comments(id)'
+const ITEMS_PER_PAGE = 10;
 
 export default function Home() {
   const searchParams = useSearchParams()
@@ -14,31 +15,85 @@ export default function Home() {
   
   const { user, isDark, loading: authLoading, requireLogin } = useApp()
   const [polls, setPolls] = useState([])
+  
   const [dataLoading, setDataLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  
   const [sortBy, setSortBy] = useState('newest')
+  
+  const observer = useRef()
 
-  const fetchPolls = async () => {
-    setDataLoading(true)
+  const fetchPolls = async (pageIndex = 0, isNewFilter = false) => {
+    if (isNewFilter) {
+      setDataLoading(true)
+      setPage(0)
+    } else {
+      setLoadingMore(true)
+    }
+
     try {
-      let query = supabase
-        .from("polls")
-        .select(POLL_SELECT)
+      let query = supabase.from("polls").select(POLL_SELECT)
 
       if (category) {
         query = query.eq('category', category)
       }
 
-      const { data } = await query.order("created_at", { ascending: false })
+      // GÜÇLENDİRİLMİŞ SIRALAMA: Javascript yerine doğrudan Supabase Computed Columns kullanıyoruz!
+      if (sortBy === 'popular') {
+        query = query.order('vote_count', { ascending: false })
+      } else if (sortBy === 'interacted') {
+        query = query.order('comment_count', { ascending: false })
+      } else {
+        query = query.order('created_at', { ascending: false })
+      }
 
-      if (data) setPolls(data)
+      const from = pageIndex * ITEMS_PER_PAGE
+      const to = from + ITEMS_PER_PAGE - 1
+      query = query.range(from, to)
+
+      const { data, error } = await query
+
+      if (error) throw error;
+
+      if (data) {
+        if (data.length < ITEMS_PER_PAGE) {
+          setHasMore(false)
+        } else {
+          setHasMore(true)
+        }
+        setPolls(prev => isNewFilter ? data : [...prev, ...data])
+      }
+    } catch (error) {
+      console.error("Fetch hatası:", error.message)
     } finally {
       setDataLoading(false)
+      setLoadingMore(false)
     }
   }
 
   useEffect(() => {
-    fetchPolls()
-  }, [category])
+    fetchPolls(0, true)
+  }, [category, sortBy])
+
+  const lastElementRef = useCallback(node => {
+    if (dataLoading || loadingMore) return;
+    if (observer.current) observer.current.disconnect()
+
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => {
+          const nextPage = prevPage + 1;
+          fetchPolls(nextPage, false);
+          return nextPage;
+        })
+      }
+    })
+
+    if (node) observer.current.observe(node)
+  }, [dataLoading, loadingMore, hasMore, category, sortBy])
+
 
   const onVote = async (pollId, optionId) => {
     if (!user) return requireLogin()
@@ -66,23 +121,10 @@ export default function Home() {
 
   if (authLoading) return null
 
-  const sortedPolls = [...polls].sort((a, b) => {
-    if (sortBy === 'popular') {
-      const votesA = a.poll_options.reduce((acc, opt) => acc + (opt.votes?.length || 0), 0)
-      const votesB = b.poll_options.reduce((acc, opt) => acc + (opt.votes?.length || 0), 0)
-      return votesB - votesA
-    }
-    if (sortBy === 'interacted') {
-      const commentsA = a.comments?.length || 0
-      const commentsB = b.comments?.length || 0
-      return commentsB - commentsA
-    }
-    return new Date(b.created_at) - new Date(a.created_at)
-  })
-
   return (
     <div className="w-full">
       <div className="max-w-xl mx-auto p-4 mt-0">
+        
         <div className="flex items-center justify-center gap-2 mb-6 mt-0">
           {['newest', 'popular', 'interacted'].map((type) => (
             <button
@@ -99,28 +141,59 @@ export default function Home() {
           ))}
         </div>
 
-        <div className="flex flex-col gap-6">
-          {sortedPolls.length > 0 ? (
-            sortedPolls.map((poll) => (
-              <PollCard
-                key={poll.id}
-                poll={poll}
-                user={user}
-                onVote={onVote}
-              />
-            ))
-          ) : !dataLoading && (
-            <div className="text-center py-20 opacity-30 font-bold italic">
-              No polls found.
-            </div>
-          )}
-        </div>
-
         {dataLoading && (
-          <div className={`text-center py-10 font-bold animate-pulse ${isDark ? 'text-white' : 'text-blue-500'}`}>
-            Loading...
+          <div className={`text-center py-20 font-bold animate-pulse ${isDark ? 'text-white' : 'text-blue-500'}`}>
+            Loading Initial Data...
           </div>
         )}
+
+        {!dataLoading && (
+          <div className="flex flex-col gap-6">
+            {polls.length > 0 ? (
+              polls.map((poll, index) => {
+                if (polls.length === index + 1) {
+                  return (
+                    <div ref={lastElementRef} key={poll.id}>
+                      <PollCard 
+                        poll={poll} 
+                        user={user} 
+                        onVote={onVote} 
+                        onDelete={(deletedId) => setPolls(prev => prev.filter(p => p.id !== deletedId))}
+                      />
+                    </div>
+                  )
+                } else {
+                  return (
+                    <PollCard 
+                      key={poll.id} 
+                      poll={poll} 
+                      user={user} 
+                      onVote={onVote} 
+                      onDelete={(deletedId) => setPolls(prev => prev.filter(p => p.id !== deletedId))}
+                    />
+                  )
+                }
+              })
+            ) : (
+              <div className="text-center py-20 opacity-30 font-bold italic">
+                No polls found.
+              </div>
+            )}
+          </div>
+        )}
+
+        {loadingMore && (
+          <div className="text-center py-6 font-bold text-sm opacity-50 uppercase tracking-widest animate-pulse">
+            Loading More...
+          </div>
+        )}
+        
+        {!hasMore && polls.length > 0 && (
+          <div className="text-center py-10 font-bold text-xs opacity-30 uppercase tracking-widest">
+            You've reached the end
+          </div>
+        )}
+
       </div>
     </div>
   )

@@ -51,13 +51,14 @@ export default function ProfilePage() {
       const file = event.target.files[0]
       if (!file) return
 
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Math.random()}.${fileExt}`
-      const filePath = `${currentUser.id}/${fileName}`
+      // GÜVENLİK FİX: Rastgele isim yerine her kullanıcı için sabit dosya adı.
+      // Uzantıyı sildik ki jpg/png fark etmeksizin hep aynı dosyanın üstüne yazılsın.
+      const filePath = `${currentUser.id}/avatar`
 
+      // GÜVENLİK FİX: upsert: true ile eskisinin üstüne yazıyoruz
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file)
+        .upload(filePath, file, { upsert: true })
 
       if (uploadError) throw uploadError
 
@@ -65,14 +66,17 @@ export default function ProfilePage() {
         .from('avatars')
         .getPublicUrl(filePath)
 
+      // GÜVENLİK FİX: Tarayıcı Cache'ini (Önbelleğini) kırmak için linke zaman damgası ekliyoruz
+      const urlWithCacheBuster = `${publicUrl}?t=${new Date().getTime()}`
+
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: publicUrl })
+        .update({ avatar_url: urlWithCacheBuster })
         .eq('id', currentUser.id)
 
       if (updateError) throw updateError
 
-      setProfile({ ...profile, avatar_url: publicUrl })
+      setProfile({ ...profile, avatar_url: urlWithCacheBuster })
     } catch (error) {
       console.error(error)
       alert('Error uploading avatar!')
@@ -141,7 +145,14 @@ export default function ProfilePage() {
 
       <div className="flex flex-col gap-6">
         {polls.map((poll) => (
-          <PollCard key={poll.id} poll={poll} user={currentUser} onVote={onVote} />
+          <PollCard 
+            key={poll.id} 
+            poll={poll} 
+            user={currentUser} 
+            onVote={onVote} 
+            // Profilde anket silindiğinde sayfayı yenilemeden direkt aradan çıkarır
+            onDelete={(deletedId) => setPolls(prev => prev.filter(p => p.id !== deletedId))} 
+          />
         ))}
       </div>
     </div>
