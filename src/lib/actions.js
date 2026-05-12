@@ -2,21 +2,18 @@
 import { supabase } from "@/lib/supabase"
 import { z } from "zod"
 
-// Anket
 const createPollSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   category: z.string(),
   user_id: z.string().uuid("Invalid user ID")
 })
 
-// Oy 
 const voteSchema = z.object({
   poll_id: z.string().uuid("Invalid poll ID"),
   option_id: z.string().uuid("Invalid option ID"),
   user_id: z.string().uuid("Invalid user ID")
 })
 
-// Yorum check
 const createCommentSchema = z.object({
   poll_id: z.string().uuid("Invalid poll ID"),
   user_id: z.string().uuid("Invalid user ID"),
@@ -24,20 +21,25 @@ const createCommentSchema = z.object({
   parent_id: z.string().uuid("Invalid parent ID").nullable().optional()
 })
 
-// delete check
 const deleteCommentSchema = z.object({
   comment_id: z.string().uuid("Invalid comment ID"),
   user_id: z.string().uuid("Invalid user ID")
 })
 
-// update check
 const updateCommentSchema = z.object({
   comment_id: z.string().uuid("Invalid comment ID"),
   user_id: z.string().uuid("Invalid user ID"),
   content: z.string().min(1, "Comment cannot be empty")
 })
 
-//  anket oluştur
+// GÜNCELLENDİ: Artık sadece poll_id değil, comment_id de alabiliyor.
+const reportSchema = z.object({
+  poll_id: z.string().uuid("Invalid poll ID").optional(),
+  comment_id: z.string().uuid("Invalid comment ID").optional(),
+  reported_by: z.string().uuid("Invalid user ID"),
+  reason: z.string().optional()
+})
+
 export async function createPollAction(pollData, optionsData) {
   try {
     const validatedData = createPollSchema.parse(pollData)
@@ -53,6 +55,7 @@ export async function createPollAction(pollData, optionsData) {
     for (let i = 0; i < optionsData.length; i++) {
       await supabase.from("poll_options").insert([{
         poll_id: poll.id,
+        option_type: optionsData[i].option_type || 'text',
         content: optionsData[i].content,
         image_url: optionsData[i].image_url
       }])
@@ -64,7 +67,6 @@ export async function createPollAction(pollData, optionsData) {
   }
 }
 
-// oy verme
 export async function voteAction(voteData) {
   try {
     const validatedData = voteSchema.parse(voteData)
@@ -97,7 +99,6 @@ export async function createCommentAction(commentData) {
   }
 }
 
-// yorum silme
 export async function deleteCommentAction(data) {
   try {
     const validatedData = deleteCommentSchema.parse(data)
@@ -129,6 +130,74 @@ export async function updateCommentAction(data) {
 
     if (error) throw new Error(error.message)
 
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
+// GÜNCELLENDİ: İsmi "reportAction" oldu ve duruma göre anket veya yorum raporlayabiliyor
+export async function reportAction(data) {
+  try {
+    const validatedData = reportSchema.parse(data)
+
+    const insertData = {
+      reported_by: validatedData.reported_by,
+      reason: validatedData.reason,
+      status: 'pending'
+    }
+
+    // Modal'dan ne geldiyse onu veritabanına yaz
+    if (validatedData.poll_id) insertData.poll_id = validatedData.poll_id
+    if (validatedData.comment_id) insertData.comment_id = validatedData.comment_id
+
+    const { error } = await supabase
+      .from('reports')
+      .insert([insertData])
+
+    if (error) throw new Error(error.message)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
+export async function banUserAction(userId, status = true) {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ isbanned: status })
+      .eq('id', userId)
+
+    if (error) throw new Error(error.message)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
+export async function resolveReportAction(reportId) {
+  try {
+    const { error } = await supabase
+      .from('reports')
+      .update({ status: 'resolved' })
+      .eq('id', reportId)
+
+    if (error) throw new Error(error.message)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
+export async function deletePollAction(pollId) {
+  try {
+    const { error } = await supabase
+      .from('polls')
+      .delete()
+      .eq('id', pollId)
+
+    if (error) throw new Error(error.message)
     return { success: true }
   } catch (error) {
     return { success: false, error: error.message }

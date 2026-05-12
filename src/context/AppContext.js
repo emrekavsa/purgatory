@@ -12,12 +12,20 @@ export function AppProvider({ children }) {
 
   const fetchProfile = async (sessionUser) => {
     if (!sessionUser) return null
+    
+    // BURAYI GÜNCELLEDİM: is_admin sütununu da artık çekiyoruz
     const { data } = await supabase
       .from('profiles')
-      .select('username, avatar_url')
+      .select('username, avatar_url, is_admin') 
       .eq('id', sessionUser.id)
       .single()
-    return { ...sessionUser, username: data?.username || 'User', avatar_url: data?.avatar_url }
+
+    return { 
+      ...sessionUser, 
+      username: data?.username || 'User', 
+      avatar_url: data?.avatar_url,
+      is_admin: data?.is_admin || false // Buraya ekledik ki user objesinde adminlik gözüksün
+    }
   }
 
   const requireLogin = () => {

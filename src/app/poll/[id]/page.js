@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useApp } from '@/context/AppContext'
 import PollCard from '@/components/PollCard'
+import ReportModal from '@/components/ReportModal' // EKLENDİ
 import { formatRelativeTime } from '@/lib/utils'
 import { createCommentAction, deleteCommentAction, updateCommentAction, voteAction } from '@/lib/actions'
 
@@ -22,6 +23,10 @@ export default function PollDetailPage() {
   const [editContent, setEditContent] = useState('')
   const [replyingTo, setReplyingTo] = useState(null)
   const [replyContent, setReplyContent] = useState('')
+
+  // Raporlama State'leri EKLENDİ
+  const [isReportOpen, setIsReportOpen] = useState(false)
+  const [reportTarget, setReportTarget] = useState({ id: null, type: null })
 
   const commentInputRef = useRef(null)
 
@@ -116,6 +121,12 @@ export default function PollDetailPage() {
     }
   }
 
+  const openReportModal = (targetId, targetType) => {
+    if (!user) return requireLogin()
+    setReportTarget({ id: targetId, type: targetType })
+    setIsReportOpen(true)
+  }
+
   const renderComment = (comment, allComments, depth = 0) => {
     const replies = allComments.filter(r => r.parent_id === comment.id)
     const isEdited = comment.updated_at && (new Date(comment.updated_at) - new Date(comment.created_at) > 1000)
@@ -143,16 +154,31 @@ export default function PollDetailPage() {
                 {isEdited && <span className="opacity-30 italic">(edited)</span>}
               </div>
 
-              {user?.id === comment.user_id && editingId !== comment.id && (
-                <div className="flex gap-2 opacity-0 group-hover/comment:opacity-100 transition-opacity">
-                  <button onClick={() => { setEditingId(comment.id); setEditContent(comment.content) }} className="w-3.5 h-3.5 opacity-40 hover:opacity-100 dark:invert">
-                    <img src="/edit-icon.svg" alt="Edit" />
+              {/* BUTON GRUBU GÜNCELLENDİ */}
+              <div className="flex gap-2 opacity-0 group-hover/comment:opacity-100 transition-opacity items-center">
+                
+                {/* Yorum Başkasına Aitse Report Butonu Çıkar */}
+                {user && user.id !== comment.user_id && (
+                  <button 
+                    onClick={() => openReportModal(comment.id, "Comment")}
+                    className="p-1 opacity-40 hover:opacity-100 hover:bg-red-500/10 rounded-full transition-all"
+                  >
+                    <img src="/report.svg" alt="Report" className={`w-3.5 h-3.5 ${isDark ? 'invert' : ''}`} />
                   </button>
-                  <button onClick={() => handleDeleteComment(comment.id)} className="w-3.5 h-3.5 opacity-40 hover:opacity-100">
-                    <img src="/delete-icon.svg" alt="Delete" />
-                  </button>
-                </div>
-              )}
+                )}
+
+                {/* Yorum Sana Aitse Edit/Delete Butonları Çıkar */}
+                {user?.id === comment.user_id && editingId !== comment.id && (
+                  <>
+                    <button onClick={() => { setEditingId(comment.id); setEditContent(comment.content) }} className="w-3.5 h-3.5 opacity-40 hover:opacity-100 dark:invert">
+                      <img src="/edit-icon.svg" alt="Edit" />
+                    </button>
+                    <button onClick={() => handleDeleteComment(comment.id)} className="w-3.5 h-3.5 opacity-40 hover:opacity-100">
+                      <img src="/delete-icon.svg" alt="Delete" />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
             {editingId === comment.id ? (
@@ -216,6 +242,7 @@ export default function PollDetailPage() {
   return (
     <div className="w-full">
       <div className="max-w-xl mx-auto p-4 mt-6">
+        
         <PollCard
           poll={poll}
           user={user}
@@ -253,6 +280,15 @@ export default function PollDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* REPORT MODAL EN DIŞA EKLENDİ */}
+      <ReportModal 
+        isOpen={isReportOpen} 
+        onClose={() => setIsReportOpen(false)} 
+        targetId={reportTarget.id} 
+        targetType={reportTarget.type} 
+        userId={user?.id} 
+      />
     </div>
   )
 }

@@ -4,11 +4,13 @@ import { useRouter } from 'next/navigation'
 import { formatRelativeTime } from '@/lib/utils'
 import { useApp } from '@/context/AppContext'
 import { supabase } from '@/lib/supabase'
+import ReportModal from '@/components/ReportModal'
 
 export default function PollCard({ poll, user, onVote }) {
   const router = useRouter()
   const { isDark } = useApp()
   const [copied, setCopied] = useState(false)
+  const [isReportOpen, setIsReportOpen] = useState(false)
 
   if (!poll || !poll.poll_options) return null
 
@@ -36,7 +38,6 @@ export default function PollCard({ poll, user, onVote }) {
       .from('polls')
       .delete()
       .eq('id', poll.id)
-      .eq('user_id', user.id)
 
     if (error) {
       alert(error.message)
@@ -58,10 +59,10 @@ export default function PollCard({ poll, user, onVote }) {
     : 'flex flex-col gap-2'
 
   return (
-    <div className={`group p-5 border rounded-3xl transition-all ${
+    <div className={`group p-5 border rounded-3xl transition-all relative ${
       isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-gray-200 text-black'
     }`}>
-
+      
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 text-sm">
           <div onClick={() => router.push(`/profile/${authorName}`)} className="flex items-center gap-2 cursor-pointer">
@@ -78,18 +79,26 @@ export default function PollCard({ poll, user, onVote }) {
         </div>
 
         <div className="flex items-center gap-2">
-          {user?.id === poll.user_id && (
+          {user && user.id !== poll.user_id && (
             <button 
-              onClick={handleDelete} 
-              className="transition-all opacity-0 group-hover:opacity-100 outline-none"
+              onClick={() => setIsReportOpen(true)}
+              className="p-2 opacity-30 hover:opacity-100 hover:bg-red-500/10 rounded-full transition-all"
             >
               <img 
-                src="/delete-icon.svg" 
-                alt="Delete" 
-                className="w-4 h-4 opacity-40 hover:opacity-100 transition-opacity" 
+                src="/report.svg" 
+                alt="Report" 
+                className={`w-4 h-4 ${isDark ? 'invert' : ''}`} 
               />
             </button>
           )}
+
+          {/* SİLME BUTONU GÜNCELLENDİ: SAHİBİ VEYA ADMİN GÖREBİLİR */}
+          {(user?.id === poll.user_id || user?.is_admin) && (
+            <button onClick={handleDelete} className="transition-all opacity-0 group-hover:opacity-100 outline-none">
+              <img src="/delete-icon.svg" alt="Delete" className="w-4 h-4 opacity-40 hover:opacity-100 transition-opacity" />
+            </button>
+          )}
+          
           <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
             isDark ? 'bg-zinc-800 text-zinc-400' : 'bg-gray-100 text-gray-500'
           }`}>
@@ -130,11 +139,7 @@ export default function PollCard({ poll, user, onVote }) {
               {hasImages && (
                 <div className={`relative w-full aspect-[4/3] overflow-hidden border-b border-inherit z-10 ${isDark ? 'bg-black' : 'bg-zinc-100'}`}>
                   {opt.image_url ? (
-                    <img
-                      src={opt.image_url}
-                      className="w-full h-full object-contain p-1"
-                      alt={opt.content}
-                    />
+                    <img src={opt.image_url} className="w-full h-full object-contain p-1" alt={opt.content} />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center opacity-20 text-xs italic">no image</div>
                   )}
@@ -177,6 +182,14 @@ export default function PollCard({ poll, user, onVote }) {
         </div>
         {hasVoted && <div className="text-[10px] opacity-40 font-black uppercase tracking-tighter">{totalVotes} total votes</div>}
       </div>
+
+      <ReportModal 
+        isOpen={isReportOpen} 
+        onClose={() => setIsReportOpen(false)} 
+        targetId={poll.id} 
+        targetType="Poll" 
+        userId={user?.id} 
+      />
     </div>
   )
 }

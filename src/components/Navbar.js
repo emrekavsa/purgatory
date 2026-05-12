@@ -33,7 +33,7 @@ export default function Navbar() {
           : "bg-white border-gray-100 text-black"
       }`}
     >
-      <div className="w-[140px] md:w-[240px] flex items-center justify-start">
+      <div className="w-[120px] md:w-[240px] flex items-center justify-start">
         <Link
           href="/"
           className="flex items-center group transition-opacity hover:opacity-80"
@@ -75,7 +75,7 @@ export default function Navbar() {
         />
       </div>
 
-      <div className="w-[100px] md:w-[240px] flex items-center justify-end gap-2">
+      <div className="w-auto md:w-[240px] flex items-center justify-end gap-3">
         {!user ? (
           <button
             onClick={requireLogin}
@@ -85,12 +85,26 @@ export default function Navbar() {
           </button>
         ) : (
           <>
+            {user.is_admin === true && (
+              <Link
+                href="/admin"
+                className={`p-2 px-4 rounded-full font-bold text-sm transition-all active:scale-95 ${
+                  isDark 
+                    ? "bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700" 
+                    : "bg-gray-100 text-black hover:bg-gray-200 border border-gray-200"
+                }`}
+              >
+                Admin
+              </Link>
+            )}
+
             <Link
               href="/create"
               className="p-2 px-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 hidden md:block transition-all active:scale-95"
             >
               + Create
             </Link>
+
             <div className="relative">
               <button
                 onClick={() => setIsOpen(!isOpen)}
@@ -115,10 +129,19 @@ export default function Navbar() {
                 <div
                   className={`absolute right-0 mt-2 w-48 border shadow-2xl rounded-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 ${
                     isDark
-                      ? "bg-zinc-900 border-zinc-800"
-                      : "bg-white border-gray-200"
+                      ? "bg-zinc-900 border-zinc-800 text-white"
+                      : "bg-white border-gray-200 text-black"
                   }`}
                 >
+                  {user.is_admin === true && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setIsOpen(false)}
+                      className="block w-full text-left p-2 hover:bg-gray-500/10 rounded-lg text-sm font-bold text-blue-500 md:hidden"
+                    >
+                      Admin Panel
+                    </Link>
+                  )}
                   <Link
                     href={`/profile/${username}`}
                     onClick={() => setIsOpen(false)}
