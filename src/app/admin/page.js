@@ -30,7 +30,7 @@ export default function AdminPage() {
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error("Sorgu Hatası:", error.message)
+      console.error("Query Error:", error.message)
     } else {
       const filtered = data.filter(item => {
         if (activeTab === 'polls') return item.poll_id !== null && item.polls !== null
@@ -47,10 +47,9 @@ export default function AdminPage() {
   }, [user, activeTab])
 
   const handleAction = async (reportId) => {
-    // GÜVENLİK FİX: İşlemi yapanın (user.id) kimliği de gönderiliyor.
     const res = await resolveReportAction(user.id, reportId)
     if (res.success) fetchReports()
-    else alert(res.error) // Hata varsa admin görsün
+    else alert(res.error) 
   }
 
   if (!user?.is_admin) return <div className="p-20 text-center">UNAUTHORIZED</div>
@@ -82,20 +81,16 @@ export default function AdminPage() {
           reports.map((report) => (
             <div key={report.id} className={`p-5 rounded-3xl border shadow-sm transition-all ${isDark ? 'bg-zinc-900/50 border-zinc-800' : 'bg-gray-50 border-gray-200'}`}>
               
-              {/* HEADER (Reported By + Reason + Butonlar Yan Yana) */}
               <div className="flex items-start md:items-center justify-between mb-4 flex-col md:flex-row gap-4">
                 
-                {/* SOL TARAF: Kim raporladı & Neden raporladı */}
                 <div className="flex items-center gap-4">
                   <div className="flex flex-col">
                     <span className="text-[9px] font-black uppercase tracking-[0.1em] text-blue-500 mb-0.5">Reported By</span>
                     <span className="text-sm font-bold">@{report.profiles?.username}</span>
                   </div>
 
-                  {/* Dikey Ayraç Çizgisi */}
                   <div className={`w-px h-6 opacity-30 ${isDark ? 'bg-white' : 'bg-black'}`}></div>
 
-                  {/* Sebep */}
                   <div className="flex flex-col">
                     <span className="text-[9px] font-bold uppercase tracking-[0.1em] opacity-40 mb-0.5">Reason</span>
                     <div className="flex items-center gap-1.5">
@@ -107,7 +102,6 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* SAĞ TARAF: Aksiyon Butonları */}
                 <div className="flex gap-2">
                   <button onClick={() => handleAction(report.id)} className={`px-4 py-1.5 rounded-full text-[11px] font-bold transition-all ${isDark ? 'bg-zinc-800 hover:bg-zinc-700' : 'bg-white border hover:bg-gray-100'}`}>
                     Dismiss
@@ -117,12 +111,11 @@ export default function AdminPage() {
                        if(confirm("Ban this user?")) {
                           const targetUserId = activeTab === 'polls' ? report.polls?.user_id : report.comments?.user_id;
                           if (targetUserId) {
-                             // GÜVENLİK FİX: Admin'in kimliği (user.id) de server'a gönderiliyor.
                              const res = await banUserAction(user.id, targetUserId);
                              if(res.success) {
                                handleAction(report.id);
                              } else {
-                               alert(res.error); // Hata varsa göster
+                               alert(res.error); 
                              }
                           }
                        }
@@ -134,7 +127,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* CONTENT PREVIEW (Artık en alt eleman bu, temiz bir çizgiyle ayrıldı) */}
               <div className="pointer-events-none opacity-90 scale-[0.95] origin-top border-t border-dashed pt-4 border-zinc-500/20">
                 {activeTab === 'polls' && report.polls && (
                   <div className="-mx-4 md:mx-0">

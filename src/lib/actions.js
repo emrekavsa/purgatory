@@ -32,7 +32,6 @@ const updateCommentSchema = z.object({
   content: z.string().min(1, "Comment cannot be empty")
 })
 
-// GÜVENLİK FİX: .refine ile poll_id veya comment_id'den en az birinin dolu olması zorunlu kılındı.
 const reportSchema = z.object({
   poll_id: z.string().uuid("Invalid poll ID").optional(),
   comment_id: z.string().uuid("Invalid comment ID").optional(),

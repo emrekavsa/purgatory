@@ -31,14 +31,12 @@ export default function Navbar() {
         isDark ? "bg-black border-zinc-800 text-white" : "bg-white border-gray-100 text-black"
       }`}
     >
-      {/* Logo */}
       <Link href="/" className="hover:opacity-70 transition-opacity shrink-0">
         <span className="text-4xl lowercase tracking-wide select-none font-[family-name:var(--font-aktura)] pt-1">
           purgatory
         </span>
       </Link>
 
-      {/* Search */}
       <div className="flex-1 max-w-md relative">
         <svg
           className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40 pointer-events-none"

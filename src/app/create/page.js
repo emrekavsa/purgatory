@@ -56,7 +56,6 @@ export default function CreatePoll() {
 
     setLoading(true)
     try {
-      // 1. Resimleri Supabase Storage'a Yükle (Promise.all ile paralel ve hızlı)
       const optionsData = await Promise.all(options.map(async (opt, i) => {
         let imageUrl = null
         if (opt.image) {
@@ -77,7 +76,6 @@ export default function CreatePoll() {
         return { content: opt.content, image_url: imageUrl }
       }))
 
-      // 2. Veritabanına Yazma İşlemini Sunucuya (Server Action) Devret
       const result = await createPollAction(
         { title, category, user_id: user.id }, 
         optionsData

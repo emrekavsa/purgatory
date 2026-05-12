@@ -46,7 +46,7 @@ export default function Home() {
       setHasMore(data.length === ITEMS_PER_PAGE)
       setPolls(prev => isNewFilter ? data : [...prev, ...data])
     } catch (error) {
-      console.error("Fetch hatası:", error.message)
+      console.error("Fetch error:", error.message)
     } finally {
       setDataLoading(false)
       setLoadingMore(false)

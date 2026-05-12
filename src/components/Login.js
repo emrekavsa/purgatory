@@ -65,7 +65,6 @@ export default function Login({ isOpen, onClose }) {
         isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-gray-200 text-black'
       }`}>
 
-        {/* login register switcher */}
         <div className={`flex gap-1 mb-5 p-1 rounded-xl ${isDark ? 'bg-zinc-800' : 'bg-gray-100'}`}>
           <button
             type="button"
