@@ -41,6 +41,18 @@ const reportSchema = z.object({
   message: "Either poll_id or comment_id must be provided"
 })
 
+async function assertAdmin(adminId) {
+  if (!adminId) throw new Error("Unauthorized: Admin ID is required")
+
+  const { data } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', adminId)
+    .single()
+
+  if (!data?.is_admin) throw new Error("Unauthorized")
+}
+
 export async function createPollAction(pollData, optionsData) {
   try {
     const validatedData = createPollSchema.parse(pollData)
@@ -53,14 +65,18 @@ export async function createPollAction(pollData, optionsData) {
 
     if (pollErr) throw new Error(pollErr.message)
 
-    for (let i = 0; i < optionsData.length; i++) {
-      await supabase.from("poll_options").insert([{
-        poll_id: poll.id,
-        option_type: optionsData[i].option_type || 'text',
-        content: optionsData[i].content,
-        image_url: optionsData[i].image_url
-      }])
-    }
+    const options = optionsData.map(opt => ({
+      poll_id: poll.id,
+      option_type: opt.option_type || 'text',
+      content: opt.content,
+      image_url: opt.image_url
+    }))
+
+    const { error: optionsErr } = await supabase
+      .from("poll_options")
+      .insert(options)
+
+    if (optionsErr) throw new Error(optionsErr.message)
 
     return { success: true, pollId: poll.id }
   } catch (error) {
@@ -163,15 +179,7 @@ export async function reportAction(data) {
 
 export async function banUserAction(adminId, userId, status = true) {
   try {
-    if (!adminId) throw new Error("Unauthorized: Admin ID is required")
-
-    const { data: adminCheck } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', adminId)
-      .single()
-
-    if (!adminCheck?.is_admin) throw new Error("CRITICAL: Unauthorized admin action attempt.")
+    await assertAdmin(adminId)
 
     const { error } = await supabase
       .from('profiles')
@@ -187,15 +195,7 @@ export async function banUserAction(adminId, userId, status = true) {
 
 export async function resolveReportAction(adminId, reportId) {
   try {
-    if (!adminId) throw new Error("Unauthorized: Admin ID is required")
-
-    const { data: adminCheck } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', adminId)
-      .single()
-
-    if (!adminCheck?.is_admin) throw new Error("CRITICAL: Unauthorized admin action attempt.")
+    await assertAdmin(adminId)
 
     const { error } = await supabase
       .from('reports')
@@ -211,15 +211,7 @@ export async function resolveReportAction(adminId, reportId) {
 
 export async function deletePollAction(adminId, pollId) {
   try {
-    if (!adminId) throw new Error("Unauthorized: Admin ID is required")
-
-    const { data: adminCheck } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', adminId)
-      .single()
-
-    if (!adminCheck?.is_admin) throw new Error("CRITICAL: Unauthorized admin action attempt.")
+    await assertAdmin(adminId)
 
     const { error } = await supabase
       .from('polls')

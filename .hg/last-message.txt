@@ -1,1 +1,1 @@
-added admin page, comment and poll reporting button, simplified navbar and login popup design.
+moved comments to a component, fixed admincheck repetition in actions.js
