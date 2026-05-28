@@ -28,22 +28,22 @@ export default function Navbar() {
   return (
     <nav
       className={`flex items-center justify-between px-6 h-14 border-b sticky top-0 z-50 gap-4 ${
-        isDark ? "bg-black border-zinc-800 text-white" : "bg-white border-gray-100 text-black"
+        isDark
+          ? "bg-black border-zinc-800 text-white"
+          : "bg-white border-gray-100 text-black"
       }`}
     >
-      <Link href="/" className="hover:opacity-70 transition-opacity shrink-0">
+      <Link href="/" className=" shrink-0">
         <span className="text-4xl lowercase tracking-wide select-none font-[family-name:var(--font-aktura)] pt-1">
           purgatory
         </span>
       </Link>
 
       <div className="flex-1 max-w-md relative">
-        <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40 pointer-events-none"
-          fill="none" stroke="currentColor" viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
+        <img
+          src="/search.svg"
+          className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40 pointer-events-none ${isDark ? "invert" : ""}`}
+        />
         <input
           type="text"
           placeholder="Search anything"
@@ -88,11 +88,17 @@ export default function Navbar() {
               <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`w-8 h-8 rounded-full font-bold text-sm flex items-center justify-center overflow-hidden border transition-all ${
-                  isDark ? "bg-zinc-800 border-zinc-700 hover:bg-zinc-700" : "bg-gray-100 border-gray-200 hover:bg-gray-200"
+                  isDark
+                    ? "bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
+                    : "bg-gray-100 border-gray-200 hover:bg-gray-200"
                 }`}
               >
                 {user?.avatar_url ? (
-                  <img src={user.avatar_url} alt={username} className="w-full h-full object-cover" />
+                  <img
+                    src={user.avatar_url}
+                    alt={username}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   username[0].toUpperCase()
                 )}
@@ -101,7 +107,9 @@ export default function Navbar() {
               {isOpen && (
                 <div
                   className={`absolute right-0 mt-2 w-44 border shadow-lg rounded-xl p-1.5 z-50 ${
-                    isDark ? "bg-zinc-900 border-zinc-800 text-white" : "bg-white border-gray-200 text-black"
+                    isDark
+                      ? "bg-zinc-900 border-zinc-800 text-white"
+                      : "bg-white border-gray-200 text-black"
                   }`}
                 >
                   <Link

@@ -1,1 +1,1 @@
-moved comments to a component, fixed admincheck repetition in actions.js
+visual changes on comments reply section.

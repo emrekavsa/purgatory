@@ -48,3 +48,4 @@ data/src/lib/vote.js.i
 data/src/app/admin/page.js.i
 data/src/components/ReportModal.js.i
 data/src/components/Comment.js.i
+data/public/search.svg.i

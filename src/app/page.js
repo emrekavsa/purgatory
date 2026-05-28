@@ -54,9 +54,10 @@ export default function Home() {
   }
 
   useEffect(() => {
-    setPage(0)
-    fetchPolls(0, true)
-  }, [category, sortBy])
+  if (authLoading) return
+  setPage(0)
+  fetchPolls(0, true)
+}, [category, sortBy, authLoading])
 
   const handleLoadMore = () => {
     const nextPage = page + 1
@@ -68,8 +69,6 @@ export default function Home() {
     user, pollId, optionId, requireLogin,
     onSuccess: (updatedPoll) => setPolls(prev => prev.map(p => p.id === pollId ? updatedPoll : p))
   })
-
-  if (authLoading) return null
 
   return (
     <div className="w-full">

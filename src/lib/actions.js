@@ -209,9 +209,14 @@ export async function resolveReportAction(adminId, reportId) {
   }
 }
 
-export async function deletePollAction(adminId, pollId) {
+export async function deletePollAction(userId, pollId) {
   try {
-    await assertAdmin(adminId)
+    if (!userId) throw new Error("Unauthorized")
+
+    const { data: poll } = await supabase.from('polls').select('user_id').eq('id', pollId).single()
+    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', userId).single()
+
+    if (poll?.user_id !== userId && !profile?.is_admin) throw new Error("Unauthorized")
 
     const { error } = await supabase
       .from('polls')
