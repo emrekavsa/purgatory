@@ -13,7 +13,7 @@ export default function ClientShell({ children }) {
         <Navbar onShowLogin={() => setIsLoginOpen(true)} />
         <div className="flex flex-1 relative">
           <Sidebar />
-          <main className="flex-1 w-full min-w-0 lg:ml-64">
+          <main className="flex-1 w-full min-w-0">
             {children}
           </main>
         </div>

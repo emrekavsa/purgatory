@@ -27,19 +27,21 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`flex items-center justify-between px-6 h-14 border-b sticky top-0 z-50 gap-4 ${
+      className={`flex items-center px-6 h-14 border-b sticky top-0 z-50 gap-4 ${
         isDark
           ? "bg-black border-zinc-800 text-white"
           : "bg-white border-gray-100 text-black"
       }`}
     >
-      <Link href="/" className=" shrink-0">
-        <span className="text-4xl lowercase tracking-wide select-none font-[family-name:var(--font-aktura)] pt-1">
-          purgatory
-        </span>
-      </Link>
+      <div className="flex-1 flex items-center">
+        <Link href="/" className="shrink-0">
+          <span className="text-4xl lowercase tracking-wide select-none font-[family-name:var(--font-aktura)] pt-1">
+            purgatory
+          </span>
+        </Link>
+      </div>
 
-      <div className="flex-1 max-w-md relative">
+      <div className="w-full max-w-md relative">
         <img
           src="/search.svg"
           className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40 pointer-events-none ${isDark ? "invert" : ""}`}
@@ -58,7 +60,7 @@ export default function Navbar() {
         />
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex-1 flex items-center justify-end gap-2">
         {!user ? (
           <button
             onClick={requireLogin}
@@ -76,14 +78,12 @@ export default function Navbar() {
                 Admin
               </Link>
             )}
-
             <Link
               href="/create"
               className="h-9 px-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all flex items-center"
             >
               Create
             </Link>
-
             <div className="relative">
               <button
                 onClick={() => setIsOpen(!isOpen)}
@@ -103,7 +103,6 @@ export default function Navbar() {
                   username[0].toUpperCase()
                 )}
               </button>
-
               {isOpen && (
                 <div
                   className={`absolute right-0 mt-2 w-44 border shadow-lg rounded-xl p-1.5 z-50 ${

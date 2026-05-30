@@ -8,7 +8,7 @@ export default function ReportModal({ isOpen, onClose, targetId, targetType, use
 
   if (!isOpen) return null
 
-  const reasons = ["Spam", "Inappropriate", "Harassment", "Hate Speech", "Other"]
+  const reasons = ["Spam", "Misinformation", "Inappropriate Content", "Other"]
 
   const handleSubmit = async () => {
     if (!userId) {

@@ -1,1 +1,1 @@
-added realtime to poll detail page.
+fixed sidebar and contents appearance.
