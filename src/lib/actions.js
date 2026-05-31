@@ -176,10 +176,15 @@ export async function reportAction(data) {
     return { success: false, error: error.message }
   }
 }
-
 export async function banUserAction(adminId, userId, status = true) {
   try {
     await assertAdmin(adminId)
+
+    if (status === true) {
+      await supabase.from('comments').delete().eq('user_id', userId)
+      await supabase.from('votes').delete().eq('user_id', userId)
+      await supabase.from('polls').delete().eq('user_id', userId)
+    }
 
     const { error } = await supabase
       .from('profiles')
