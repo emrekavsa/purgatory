@@ -1,6 +1,0 @@
-syntax: glob
-node_modules/**
-.next/**
-.git/**
-.DS_Store
-*.local
