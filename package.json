@@ -1,5 +1,5 @@
 {
-  "name": "project",
+  "name": "purgatory",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,10 +10,13 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.3",
-    "next": "16.2.4",
+    "next": "^16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "valibot": "^1.4.1"
+  },
+  "overrides": {
+    "postcss": "$postcss"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -22,7 +25,7 @@
     "autoprefixer": "^10.5.0",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.2.4",
+    "eslint-config-next": "^16.2.9",
     "postcss": "^8.5.10",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.3"

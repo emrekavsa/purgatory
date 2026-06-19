@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { formatRelativeTime } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 import ReportModal from "@/components/ReportModal";
-import { deletePollAction } from "@/lib/actions";
+import { supabase } from "@/lib/supabase";
 import type { AppUser, Poll, PollOption, Vote } from "@/types/domain";
 
 type PollCardProps = {
@@ -44,11 +44,12 @@ export default function PollCard({ poll, user, onVote, onDelete }: PollCardProps
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this poll?")) return;
     if (!user) return;
-    const res = await deletePollAction(user.id, poll.id);
-    if (res.success) {
+
+    const { error } = await supabase.from("polls").delete().eq("id", poll.id);
+    if (!error) {
       onDelete ? onDelete(poll.id) : router.refresh();
     } else {
-      alert("Failed to delete: " + res.error);
+      alert(error.message);
     }
   };
 

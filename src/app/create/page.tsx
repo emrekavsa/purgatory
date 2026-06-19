@@ -4,7 +4,6 @@ import type { ChangeEvent, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useApp } from "@/context/AppContext"
-import { createPollAction } from "@/lib/actions"
 
 const CATEGORIES = ["General", "Tech", "Sports", "Gaming", "Movies & TV Shows"]
 
@@ -12,6 +11,21 @@ type PollOptionDraft = {
   content: string
   image: File | null
   preview: string | null
+}
+
+const REQUEST_TIMEOUT_MS = 20_000
+
+async function withTimeout<T>(request: PromiseLike<T>, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), REQUEST_TIMEOUT_MS)
+  })
+
+  try {
+    return await Promise.race([request, timeout])
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId)
+  }
 }
 
 export default function CreatePoll() {
@@ -35,6 +49,25 @@ export default function CreatePoll() {
     requireAuthenticatedUser()
   }, [requireAuthenticatedUser])
 
+  useEffect(() => {
+    const handleResume = () => {
+      setLoading(false)
+      void supabase.auth.refreshSession().catch(() => undefined)
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") handleResume()
+    }
+
+    window.addEventListener("pageshow", handleResume)
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener("pageshow", handleResume)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+    }
+  }, [])
+
   const handleFileChange = (index: number, e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -57,6 +90,7 @@ export default function CreatePoll() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (loading) return
     if (!user) return requireLogin()
 
     const imagesCount = options.filter((opt) => opt.image !== null).length
@@ -65,6 +99,9 @@ export default function CreatePoll() {
       return
     }
 
+    let createdPollId: string | null = null
+    const uploadedFilePaths: string[] = []
+
     setLoading(true)
     try {
       const optionsData = await Promise.all(options.map(async (opt, i) => {
@@ -72,11 +109,15 @@ export default function CreatePoll() {
         if (opt.image) {
           const folderName = `${user.id}-${Date.now()}`
           const fileName = `${folderName}/${i}.jpg`
-          const { error: uploadErr } = await supabase.storage
-            .from("poll-images")
-            .upload(fileName, opt.image)
-          
+          const { error: uploadErr } = await withTimeout(
+            supabase.storage
+              .from("poll-images")
+              .upload(fileName, opt.image),
+            "Image upload timed out. Please try again.",
+          )
+
           if (uploadErr) throw uploadErr
+          uploadedFilePaths.push(fileName)
 
           const { data } = supabase.storage
             .from("poll-images")
@@ -87,16 +128,52 @@ export default function CreatePoll() {
         return { content: opt.content, image_url: imageUrl }
       }))
 
-      const result = await createPollAction(
-        { title, category, user_id: user.id }, 
-        optionsData
+      const { data: poll, error: pollErr } = await withTimeout(
+        supabase
+          .from("polls")
+          .insert([{ title, category, user_id: user.id }])
+          .select("id")
+          .single(),
+        "Poll creation timed out. Please try again.",
       )
 
-      if (!result.success) throw new Error(result.error)
+      if (pollErr) throw pollErr
+      createdPollId = poll.id
+
+      const { error: optionsErr } = await withTimeout(
+        supabase
+          .from("poll_options")
+          .insert(
+            optionsData.map((opt) => ({
+              poll_id: poll.id,
+              option_type: opt.image_url ? "image" : "text",
+              content: opt.content,
+              image_url: opt.image_url,
+            })),
+          ),
+        "Poll options creation timed out. Please try again.",
+      )
+
+      if (optionsErr) throw optionsErr
 
       router.push("/")
     } catch (err) {
+      if (createdPollId) {
+        await withTimeout(
+          supabase.from("polls").delete().eq("id", createdPollId),
+          "Poll cleanup timed out.",
+        ).catch(() => undefined)
+      }
+
+      if (uploadedFilePaths.length > 0) {
+        await withTimeout(
+          supabase.storage.from("poll-images").remove(uploadedFilePaths),
+          "Image cleanup timed out.",
+        ).catch(() => undefined)
+      }
+
       alert(err instanceof Error ? err.message : "Something went wrong")
+    } finally {
       setLoading(false)
     }
   }

@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useApp } from '@/context/AppContext'
-import { banUserAction, resolveReportAction } from '@/lib/actions'
 import PollCard from '@/components/PollCard'
 import type { ReportRecord } from '@/types/domain'
 
@@ -51,9 +50,14 @@ export default function AdminPage() {
 
   const handleAction = async (reportId: string) => {
     if (!user) return
-    const res = await resolveReportAction(user.id, reportId)
-    if (res.success) fetchReports()
-    else alert(res.error) 
+
+    const { error } = await supabase
+      .from("reports")
+      .update({ status: "resolved" })
+      .eq("id", reportId)
+
+    if (!error) fetchReports()
+    else alert(error.message)
   }
 
   if (!user?.is_admin) return <div className="p-20 text-center">UNAUTHORIZED</div>
@@ -115,12 +119,14 @@ export default function AdminPage() {
                        if(confirm("Ban this user?")) {
                           const targetUserId = activeTab === 'polls' ? report.polls?.user_id : report.comments?.user_id;
                           if (targetUserId) {
-                             const res = await banUserAction(user.id, targetUserId);
-                             if(res.success) {
-                               handleAction(report.id);
-                             } else {
-                               alert(res.error); 
-                             }
+                             const { error } = await supabase.rpc("admin_set_user_ban", {
+                              target_user_id: targetUserId,
+                              banned: true,
+                            });
+                            if (!error) handleAction(report.id);
+                            else alert(error.message);
+                          } else {
+                            alert("User not found");
                           }
                        }
                     }}

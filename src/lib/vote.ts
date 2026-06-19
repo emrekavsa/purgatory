@@ -1,8 +1,7 @@
-import { supabase } from '@/lib/supabase'
-import { voteAction } from '@/lib/actions'
-import type { AppUser, Poll } from '@/types/domain'
+import { supabase } from "@/lib/supabase"
+import type { AppUser, Poll } from "@/types/domain"
 
-const POLL_SELECT = '*, profiles(username, id, avatar_url), poll_options(id, content, image_url, votes(user_id)), comments(id)'
+const POLL_SELECT = "*, profiles(username, id, avatar_url), poll_options(id, content, image_url, votes(user_id)), comments(id)"
 
 type HandleVoteParams = {
   user: AppUser | null
@@ -15,21 +14,21 @@ type HandleVoteParams = {
 export async function handleVote({ user, pollId, optionId, requireLogin, onSuccess }: HandleVoteParams) {
   if (!user) return requireLogin()
 
-  const result = await voteAction({ poll_id: pollId, option_id: optionId, user_id: user.id })
+  const { error } = await supabase
+    .from("votes")
+    .insert([{ poll_id: pollId, option_id: optionId, user_id: user.id }])
 
-  if (result.success) {
+  if (!error) {
     const { data: updatedPoll } = await supabase
-      .from('polls')
+      .from("polls")
       .select(POLL_SELECT)
-      .eq('id', pollId)
+      .eq("id", pollId)
       .single()
 
     if (updatedPoll) onSuccess(updatedPoll as Poll)
+  } else if (error.message.includes("duplicate key") || error.message.includes("unique constraint")) {
+    alert("You already voted!")
   } else {
-    if (result.error.includes('duplicate key') || result.error.includes('unique constraint')) {
-      alert('You have already voted!')
-    } else {
-      alert(result.error)
-    }
+    alert(error.message)
   }
 }

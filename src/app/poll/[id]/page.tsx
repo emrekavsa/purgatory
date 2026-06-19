@@ -7,12 +7,6 @@ import { useApp } from "@/context/AppContext";
 import PollCard from "@/components/PollCard";
 import Comment from "@/components/Comment";
 import ReportModal from "@/components/ReportModal";
-import {
-  createCommentAction,
-  deleteCommentAction,
-  updateCommentAction,
-  voteAction,
-} from "@/lib/actions";
 import type { CommentRecord, Poll, ReportTargetType } from "@/types/domain";
 
 const POLL_SELECT =
@@ -83,43 +77,44 @@ export default function PollDetailPage() {
 
   const onVote = async (pollId: string, optionId: string) => {
     if (!user) return requireLogin();
+    const { error } = await supabase.from("votes").insert([
+      {
+        poll_id: pollId,
+        option_id: optionId,
+        user_id: user.id,
+      },
+    ]);
 
-    const result = await voteAction({
-      poll_id: pollId,
-      option_id: optionId,
-      user_id: user.id,
-    });
-
-    if (result.success) {
+    if (!error) {
       fetchData();
+    } else if (
+      error.message.includes("duplicate key") ||
+      error.message.includes("unique constraint")
+    ) {
+      alert("You already voted!");
     } else {
-      if (
-        result.error.includes("duplicate key") ||
-        result.error.includes("unique constraint")
-      ) {
-        alert("You have already voted!");
-      } else {
-        alert(result.error);
-      }
+      alert(error.message);
     }
   };
 
   const handleCommentSubmit = async (e?: FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (!user || !newComment.trim() || submitting) return;
-
     setSubmitting(true);
-    const result = await createCommentAction({
-      poll_id: id,
-      user_id: user.id,
-      content: newComment.trim(),
-    });
 
-    if (result.success) {
+    const { error } = await supabase.from("comments").insert([
+      {
+        poll_id: id,
+        user_id: user.id,
+        content: newComment.trim(),
+      },
+    ]);
+
+    if (!error) {
       setNewComment("");
       fetchData();
     } else {
-      alert(result.error);
+      alert(error.message);
     }
     setSubmitting(false);
   };
@@ -133,38 +128,48 @@ export default function PollDetailPage() {
     }
 
     if (!user || !content?.trim()) return;
-    const result = await createCommentAction({
-      poll_id: id,
-      user_id: user.id,
-      content: content.trim(),
-      parent_id: parentId,
-    });
-    if (result.success) {
+    const { error } = await supabase.from("comments").insert([
+      {
+        poll_id: id,
+        user_id: user.id,
+        content: content.trim(),
+        parent_id: parentId,
+      },
+    ]);
+
+    if (!error) {
       setReplyingTo(null);
       fetchData();
-    } else alert(result.error);
+    } else {
+      alert(error.message);
+    }
   };
 
   const handleDeleteComment = async (commentId: string) => {
     if (!user) return requireLogin();
-    if (!confirm("Delete this comment?")) return;
-    const result = await deleteCommentAction({
-      comment_id: commentId,
-      user_id: user.id,
-    });
-    if (result.success) fetchData();
-    else alert(result.error);
+    if (!confirm("Delete comment?")) return;
+
+    const { error } = await supabase
+      .from("comments")
+      .delete()
+      .eq("id", commentId)
+      .eq("user_id", user.id);
+
+    if (!error) fetchData();
+    else alert(error.message);
   };
 
   const handleUpdateComment = async (commentId: string, content: string) => {
     if (!user) return requireLogin();
-    const result = await updateCommentAction({
-      comment_id: commentId,
-      user_id: user.id,
-      content,
-    });
-    if (result.success) fetchData();
-    else alert(result.error);
+
+    const { error } = await supabase
+      .from("comments")
+      .update({ content, updated_at: new Date().toISOString() })
+      .eq("id", commentId)
+      .eq("user_id", user.id);
+
+    if (!error) fetchData();
+    else alert(error.message);
   };
 
   if (!poll && !loading)

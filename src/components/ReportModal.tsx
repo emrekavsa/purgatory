@@ -1,6 +1,6 @@
 "use client"
 import { useState } from 'react'
-import { reportAction } from '@/lib/actions'
+import { supabase } from '@/lib/supabase'
 import type { ReportTargetType } from '@/types/domain'
 
 type ReportModalProps = {
@@ -21,27 +21,24 @@ export default function ReportModal({ isOpen, onClose, targetId, targetType, use
 
   const handleSubmit = async () => {
     if (!userId) {
-      alert("You must be logged in to report.");
-      return;
+      alert("You must be logged in to report.")
+      return
     }
-
-    setLoading(true)
-    
     if (!targetId || !targetType) return
 
+    setLoading(true)
     const payload = {
       reported_by: userId,
-      reason: reason,
-      ...(targetType === "Comment" ? { comment_id: targetId } : { poll_id: targetId })
+      reason,
+      ...(targetType === "Comment" ? { comment_id: targetId } : { poll_id: targetId }),
     }
 
-    const res = await reportAction(payload)
-    
-    if (res.success) {
+    const { error } = await supabase.from("reports").insert([payload])
+    if (!error) {
       alert("Reported successfully")
       onClose()
     } else {
-      alert(res.error || "Something went wrong")
+      alert(error.message || "Something went wrong")
     }
     setLoading(false)
   }
