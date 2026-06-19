@@ -46,11 +46,12 @@ export default function Login({ isOpen, onClose }: LoginProps) {
           email: form.email,
           password: form.password,
           options: {
-            data: { username: form.username }
+            data: { username: form.username },
+            emailRedirectTo: window.location.origin,
           }
         })
         if (error) throw error
-        alert("Registration successful! Now you can log in.")
+        alert("Check your email to confirm your account before logging in.")
         setMode('login')
       }
     } catch (err) {
