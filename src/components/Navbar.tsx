@@ -35,11 +35,16 @@ export default function Navbar() {
       }`}
     >
       <div className="flex-1 flex items-center">
-        <Link href="/" className="shrink-0">
-          <span className="text-4xl lowercase tracking-wide select-none font-[family-name:var(--font-aktura)] pt-1">
-            purgatory
-          </span>
-        </Link>
+<Link href="/" className="shrink-0">
+<img
+src="/poll-icon.svg"
+alt="Purgatory"
+className={`h-7 w-7 sm:hidden ${isDark ? "invert" : ""}`}
+/>
+<span className="hidden sm:inline text-4xl lowercase tracking-wide select-none font-[family-name:var(--font-aktura)] pt-1">
+purgatory
+</span>
+</Link>
       </div>
 
       <div className="w-full max-w-md relative">

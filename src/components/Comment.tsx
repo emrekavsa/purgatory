@@ -176,17 +176,17 @@ export default function Comment({
           </button>
 
           {isReplying && (
-            <div className="mt-3 flex gap-2 items-stretch">
+<div className="mt-2 flex gap-2 items-center">
               <textarea
-                className={`flex-1 p-3 text-sm rounded-xl border outline-none resize-none ${isDark ? "bg-zinc-800 border-zinc-700 text-white" : "bg-white border-gray-100 text-black"}`}
-                rows={2}
+className={`flex-1 min-h-9 max-h-24 px-3 py-2 text-sm leading-5 rounded-xl border outline-none resize-none ${isDark ? "bg-zinc-800 border-zinc-700 text-white" : "bg-white border-gray-100 text-black"}`}
+rows={1}
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
                 autoFocus
               />
               <button
                 onClick={handleReply}
-                className="px-5 h-12 bg-blue-600 text-white text-xs font-bold rounded-xl transition-all"
+className="h-9 px-4 bg-blue-600 text-white text-xs font-bold rounded-xl transition-all hover:bg-blue-700"
               >
                 Post
               </button>

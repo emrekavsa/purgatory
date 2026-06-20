@@ -192,26 +192,26 @@ export default function PollDetailPage() {
         <div
           className={`mt-8 p-6 rounded-3xl border shadow-sm ${isDark ? "bg-zinc-900 border-zinc-800 text-white" : "bg-white border-gray-100 text-black"}`}
         >
-          <div className="mb-8 font-bold text-lg tracking-tight">
+          <div className="mb-5 font-bold text-lg tracking-tight">
             Discussion ({comments.length})
           </div>
 
           <form
             onSubmit={handleCommentSubmit}
-            className="mb-10 flex gap-3 items-stretch"
+            className="mb-8 flex gap-2 items-center"
           >
             <textarea
               ref={commentInputRef}
               placeholder="Share your thoughts..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              className={`flex-1 p-4 rounded-2xl border outline-none resize-none ${isDark ? "bg-zinc-800 border-zinc-700 text-white" : "bg-white border-gray-200 text-black"}`}
-              rows={2}
+              className={`flex-1 min-h-10 max-h-28 px-3.5 py-2.5 rounded-xl border outline-none resize-none text-sm leading-5 ${isDark ? "bg-zinc-800 border-zinc-700 text-white" : "bg-white border-gray-200 text-black"}`}
+              rows={1}
             />
             <button
               disabled={submitting}
               type="submit"
-              className="px-6 min-h-[56px] h-auto bg-blue-600 text-white font-bold rounded-2xl disabled:opacity-50 transition-all"
+              className="h-10 px-4 bg-blue-600 text-white text-sm font-bold rounded-xl disabled:opacity-50 transition-all"
             >
               {submitting ? "..." : "Post"}
             </button>
