@@ -83,7 +83,7 @@ export default function RecoveryPage() {
   }`
 
   return (
-    <div className={`min-h-[calc(100dvh-3.5rem)] flex items-center justify-center p-4 ${isDark ? "bg-black text-white" : "bg-white text-black"}`}>
+    <div className={`min-h-[calc(100dvh-3.5rem)] flex items-start justify-center px-4 pt-16 md:pt-20 ${isDark ? "bg-black text-white" : "bg-white text-black"}`}>
       <div className={`w-full max-w-sm p-6 border rounded-2xl ${isDark ? "bg-zinc-900 border-zinc-800" : "bg-white border-gray-200"}`}>
         <h1 className="text-xl font-black mb-1">Account recovery</h1>
         <p className="text-xs opacity-50 mb-5">
