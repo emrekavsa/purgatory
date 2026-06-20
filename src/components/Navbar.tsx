@@ -28,13 +28,13 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`flex items-center px-6 h-14 border-b sticky top-0 z-50 gap-4 ${
+className={`flex items-center px-3 sm:px-6 h-14 border-b sticky top-0 z-50 gap-2 sm:gap-4 ${
         isDark
           ? "bg-black border-zinc-800 text-white"
           : "bg-white border-gray-100 text-black"
       }`}
     >
-      <div className="flex-1 flex items-center">
+<div className="flex items-center shrink-0 sm:flex-1">
 <Link href="/" className="shrink-0">
 <img
 src="/poll-icon.svg"
@@ -47,7 +47,7 @@ purgatory
 </Link>
       </div>
 
-      <div className="w-full max-w-md relative">
+<div className="min-w-0 flex-1 sm:w-full sm:max-w-md relative">
         <img
           src="/search.svg"
           alt=""
@@ -73,11 +73,11 @@ purgatory
         />
       </div>
 
-      <div className="flex-1 flex items-center justify-end gap-2">
+<div className="shrink-0 sm:flex-1 flex items-center justify-end gap-1.5 sm:gap-2">
         {!user ? (
           <button
             onClick={requireLogin}
-            className="h-9 px-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all"
+className="h-9 px-3 sm:px-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all"
           >
             Log in
           </button>
@@ -93,7 +93,7 @@ purgatory
             )}
             <Link
               href="/create"
-              className="h-9 px-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all flex items-center"
+className="h-9 px-3 sm:px-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all flex items-center"
             >
               Create
             </Link>
