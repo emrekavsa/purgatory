@@ -48,9 +48,15 @@ export default function Navbar() {
           alt=""
           className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40 pointer-events-none ${isDark ? "invert" : ""}`}
         />
+        {!searchTerm && (
+          <span className="pointer-events-none absolute left-9 top-1/2 -translate-y-1/2 text-sm font-bold opacity-40">
+            <span className="sm:hidden">Search</span>
+            <span className="hidden sm:inline">Search anything</span>
+          </span>
+        )}
         <input
           type="text"
-          placeholder="Search anything"
+          aria-label="Search"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={handleSearch}
