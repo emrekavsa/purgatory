@@ -1,9 +1,12 @@
 "use client";
+
 import {
   createContext,
+  useCallback,
   useContext,
-  useState,
   useEffect,
+  useMemo,
+  useState,
   type ReactNode,
 } from "react";
 import type { User } from "@supabase/supabase-js";
@@ -28,35 +31,40 @@ export function AppProvider({
   children: ReactNode;
   initialUser: AppUser | null;
 }) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [user, setUser] = useState<AppUser | null>(initialUser);
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
   const [loading, setLoading] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
-  const fetchProfile = async (sessionUser: User): Promise<AppUser | null> => {
-    if (!sessionUser) return null;
+  const fetchProfile = useCallback(
+    async (sessionUser: User): Promise<AppUser | null> => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("username, avatar_url, is_admin, isbanned")
+        .eq("id", sessionUser.id)
+        .single();
 
-    const { data } = await supabase
-      .from("profiles")
-      .select("username, avatar_url, is_admin, isbanned")
-      .eq("id", sessionUser.id)
-      .single();
+      if (data?.isbanned) {
+        await supabase.auth.signOut();
+        alert("Your account has been banned.");
+        return null;
+      }
 
-    if (data?.isbanned) {
-      await supabase.auth.signOut();
-      alert("Your account has been banned.");
-      return null;
-    }
-
-    return {
-      ...sessionUser,
-      username: data?.username || "User",
-      avatar_url: data?.avatar_url,
-      is_admin: data?.is_admin || false,
-      isbanned: data?.isbanned || false,
-    };
-  };
+      return {
+        ...sessionUser,
+        username: data?.username || "User",
+        avatar_url: data?.avatar_url,
+        is_admin: data?.is_admin || false,
+        isbanned: data?.isbanned || false,
+      };
+    },
+    [supabase],
+  );
 
   const requireLogin = () => {
     setIsLoginOpen(true);
@@ -64,12 +72,8 @@ export function AppProvider({
 
   useEffect(() => {
     const themeQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    setIsDark(themeQuery.matches);
-
     const handleTheme = (e: MediaQueryListEvent) => setIsDark(e.matches);
     themeQuery.addEventListener("change", handleTheme);
-
-
 
     const {
       data: { subscription: authSub },
@@ -88,7 +92,7 @@ export function AppProvider({
       themeQuery.removeEventListener("change", handleTheme);
       authSub.unsubscribe();
     };
-  }, []);
+  }, [fetchProfile, supabase]);
 
   return (
     <AppContext.Provider
@@ -108,16 +112,17 @@ export function AppProvider({
 
 export const useApp = () => {
   const context = useContext(AppContext);
+
   if (!context) {
-    // Return a default context so it doesn't crash during SSR static prerendering (like _global-error or loading.tsx outside boundary)
     return {
       user: null,
-      isDark: false, // fallback
+      isDark: false,
       loading: false,
       isLoginOpen: false,
       setIsLoginOpen: () => {},
       requireLogin: () => {},
     };
   }
+
   return context;
 };

@@ -19,5 +19,4 @@ Purgatory is a full-stack social polling app built with Next.js and Supabase. It
 - TypeScript
 - Supabase Auth, Database, and Storage
 - Tailwind CSS 4
-- Valibot
 - Vercel

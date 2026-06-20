@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/context/AppContext";
@@ -14,7 +14,7 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
   const { isDark, user, requireLogin } = useApp();
-  const supabase = createClient();
+const supabase = useMemo(() => createClient(), []);
 
   const [activeTab, setActiveTab] = useState("polls");
   const [polls, setPolls] = useState<Poll[]>([]);
@@ -40,7 +40,7 @@ function SearchContent() {
     setPolls(pollData);
     setPeople((peopleRes.data || []) as Profile[]);
     setLoading(false);
-  }, [query]);
+}, [query, supabase]);
 
   useEffect(() => {
     void Promise.resolve().then(getResults);

@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -37,7 +37,7 @@ async function withTimeout<T>(
 }
 
 export default function CreatePoll() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const { user, isDark, loading: authLoading, requireLogin } = useApp();
   const router = useRouter();
 
@@ -75,7 +75,7 @@ export default function CreatePoll() {
       window.removeEventListener("pageshow", handleResume);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [supabase]);
 
   const handleFileChange = (
     index: number,
