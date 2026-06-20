@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { formatRelativeTime } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
 import ReportModal from "@/components/ReportModal";
@@ -15,7 +16,12 @@ type PollCardProps = {
   onCommentClick?: () => void;
 };
 
-export default function PollCard({ poll, user, onVote, onDelete }: PollCardProps) {
+export default function PollCard({
+  poll,
+  user,
+  onVote,
+  onDelete,
+}: PollCardProps) {
   const router = useRouter();
   const { isDark } = useApp();
   const [copied, setCopied] = useState(false);
@@ -77,15 +83,19 @@ export default function PollCard({ poll, user, onVote, onDelete }: PollCardProps
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 text-sm">
           <div
-            onClick={() => router.push(`/profile/${encodeURIComponent(authorName)}`)}
+            onClick={() =>
+              router.push(`/profile/${encodeURIComponent(authorName)}`)
+            }
             className="flex items-center gap-2 cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold overflow-hidden relative">
               {poll.profiles?.avatar_url ? (
-                <img
+                <Image
                   src={poll.profiles.avatar_url}
                   alt={authorName}
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="32px"
+                  className="object-cover"
                 />
               ) : (
                 authorName[0].toUpperCase()
@@ -139,7 +149,7 @@ export default function PollCard({ poll, user, onVote, onDelete }: PollCardProps
 
       <div className={containerClass}>
         {pollOptions.map((opt: PollOption) => {
-            const voteCount = Number(opt.vote_count ?? opt.votes?.length ?? 0);
+          const voteCount = Number(opt.vote_count ?? opt.votes?.length ?? 0);
           const percent =
             totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
           const isMyChoice = opt.id === userVote?.id;
@@ -170,13 +180,13 @@ export default function PollCard({ poll, user, onVote, onDelete }: PollCardProps
               )}
 
               {hasImages && (
-                <div
-                  className="relative w-full aspect-[4/3] overflow-hidden border-b border-inherit bg-black z-10"
-                >
+                <div className="relative w-full aspect-[4/3] overflow-hidden border-b border-inherit bg-black z-10">
                   {opt.image_url ? (
-                    <img
+                    <Image
                       src={opt.image_url}
-                      className="w-full h-full object-contain p-2"
+                      fill
+                      sizes="(max-width: 640px) 45vw, 280px"
+                      className="object-contain p-2"
                       alt={opt.content}
                     />
                   ) : (

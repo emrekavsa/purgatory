@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import type { KeyboardEvent } from "react";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
@@ -16,7 +17,10 @@ export default function Navbar() {
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -40,26 +44,26 @@ export default function Navbar() {
 
   return (
     <nav
-className={`flex items-center px-3 sm:px-6 h-14 border-b sticky top-0 z-50 gap-2 sm:gap-4 ${
+      className={`flex items-center px-3 sm:px-6 h-14 border-b sticky top-0 z-50 gap-2 sm:gap-4 ${
         isDark
           ? "bg-black border-zinc-800 text-white"
           : "bg-white border-gray-100 text-black"
       }`}
     >
-<div className="flex items-center shrink-0 sm:flex-1">
-<Link href="/" className="shrink-0">
-<img
-src="/poll-icon.svg"
-alt="Purgatory"
-className={`h-7 w-7 sm:hidden ${isDark ? "invert" : ""}`}
-/>
-<span className="hidden sm:inline text-4xl lowercase tracking-wide select-none font-[family-name:var(--font-aktura)] pt-1">
-purgatory
-</span>
-</Link>
+      <div className="flex items-center shrink-0 sm:flex-1">
+        <Link href="/" className="shrink-0">
+          <img
+            src="/poll-icon.svg"
+            alt="Purgatory"
+            className={`h-7 w-7 sm:hidden ${isDark ? "invert" : ""}`}
+          />
+          <span className="hidden sm:inline text-4xl lowercase tracking-wide select-none font-[family-name:var(--font-aktura)] pt-1">
+            purgatory
+          </span>
+        </Link>
       </div>
 
-<div className="min-w-0 flex-1 sm:w-full sm:max-w-md relative">
+      <div className="min-w-0 flex-1 sm:w-full sm:max-w-md relative">
         <img
           src="/search.svg"
           alt=""
@@ -85,11 +89,11 @@ purgatory
         />
       </div>
 
-<div className="shrink-0 sm:flex-1 flex items-center justify-end gap-1.5 sm:gap-2">
+      <div className="shrink-0 sm:flex-1 flex items-center justify-end gap-1.5 sm:gap-2">
         {!user ? (
           <button
             onClick={requireLogin}
-className="h-9 px-3 sm:px-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all"
+            className="h-9 px-3 sm:px-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all"
           >
             Log in
           </button>
@@ -105,24 +109,26 @@ className="h-9 px-3 sm:px-4 bg-blue-600 text-white rounded-full font-bold text-s
             )}
             <Link
               href="/create"
-className="h-9 px-3 sm:px-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all flex items-center"
+              className="h-9 px-3 sm:px-4 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all flex items-center"
             >
               Create
             </Link>
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-8 h-8 rounded-full font-bold text-sm flex items-center justify-center overflow-hidden border transition-all ${
+                className={`w-8 h-8 rounded-full font-bold text-sm flex items-center justify-center overflow-hidden border transition-all relative ${
                   isDark
                     ? "bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
                     : "bg-gray-100 border-gray-200 hover:bg-gray-200"
                 }`}
               >
                 {user?.avatar_url ? (
-                  <img
+                  <Image
                     src={user.avatar_url}
                     alt={username}
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="32px"
+                    className="object-cover"
                   />
                 ) : (
                   username[0].toUpperCase()

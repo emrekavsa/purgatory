@@ -1,58 +1,64 @@
-"use client"
-import { Suspense, useCallback, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import { useApp } from '@/context/AppContext'
-import PollCard from '@/components/PollCard'
-import Link from 'next/link'
-import { handleVote } from '@/lib/vote'
-import { fetchPollCards } from '@/lib/polls'
-import type { Poll, Profile } from '@/types/domain'
+"use client";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { useApp } from "@/context/AppContext";
+import PollCard from "@/components/PollCard";
+import Link from "next/link";
+import Image from "next/image";
+import { handleVote } from "@/lib/vote";
+import { fetchPollCards } from "@/lib/polls";
+import type { Poll, Profile } from "@/types/domain";
 
 function SearchContent() {
-  const searchParams = useSearchParams()
-  const query = searchParams.get('q') || ""
-  const { isDark, user, requireLogin } = useApp()
+  const searchParams = useSearchParams();
+  const query = searchParams.get("q") || "";
+  const { isDark, user, requireLogin } = useApp();
 
-  const [activeTab, setActiveTab] = useState('polls')
-  const [polls, setPolls] = useState<Poll[]>([])
-  const [people, setPeople] = useState<Profile[]>([])
-  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState("polls");
+  const [polls, setPolls] = useState<Poll[]>([]);
+  const [people, setPeople] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const getResults = useCallback(async () => {
     if (query.trim() === "") {
-      setLoading(false)
-      return
+      setLoading(false);
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     const peopleRes = await supabase
-      .from('profiles')
-      .select('id, username, avatar_url')
-      .ilike('username', `%${query}%`)
-      .limit(10)
+      .from("profiles")
+      .select("id, username, avatar_url")
+      .ilike("username", `%${query}%`)
+      .limit(10);
 
-    const pollData = await fetchPollCards({ search: query, limit: 10 })
+    const pollData = await fetchPollCards({ search: query, limit: 10 });
 
-    setPolls(pollData)
-    setPeople((peopleRes.data || []) as Profile[])
-    setLoading(false)
-  }, [query])
+    setPolls(pollData);
+    setPeople((peopleRes.data || []) as Profile[]);
+    setLoading(false);
+  }, [query]);
 
   useEffect(() => {
-    void Promise.resolve().then(getResults)
-  }, [getResults])
+    void Promise.resolve().then(getResults);
+  }, [getResults]);
 
   const onVote = (pollId: string, optionId: string) => {
-    const poll = polls.find(p => p.id === pollId)
-    if (!poll) return
+    const poll = polls.find((p) => p.id === pollId);
+    if (!poll) return;
     handleVote({
-      user, poll, optionId, requireLogin,
-      onOptimistic: (updated: Poll) => setPolls(prev => prev.map(p => p.id === pollId ? updated : p)),
-      onSuccess: (updated: Poll) => setPolls(prev => prev.map(p => p.id === pollId ? updated : p))
-    })
-  }
+      user,
+      poll,
+      optionId,
+      requireLogin,
+      onOptimistic: (updated: Poll) =>
+        setPolls((prev) => prev.map((p) => (p.id === pollId ? updated : p))),
+      onSuccess: (updated: Poll) =>
+        setPolls((prev) => prev.map((p) => (p.id === pollId ? updated : p))),
+    });
+  };
 
   return (
     <div key={query} className="w-full">
@@ -61,23 +67,29 @@ function SearchContent() {
           {query ? `Results for "${query}"` : "Search"}
         </h1>
 
-        <div className={`flex gap-2 p-1 rounded-2xl mb-8 ${isDark ? 'bg-zinc-900' : 'bg-gray-200/50'}`}>
+        <div
+          className={`flex gap-2 p-1 rounded-2xl mb-8 ${isDark ? "bg-zinc-900" : "bg-gray-200/50"}`}
+        >
           <button
-            onClick={() => setActiveTab('polls')}
+            onClick={() => setActiveTab("polls")}
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
-              activeTab === 'polls'
-                ? (isDark ? 'bg-zinc-800 text-white' : 'bg-white text-black shadow-sm')
-                : 'opacity-50'
+              activeTab === "polls"
+                ? isDark
+                  ? "bg-zinc-800 text-white"
+                  : "bg-white text-black shadow-sm"
+                : "opacity-50"
             }`}
           >
             Polls ({polls.length})
           </button>
           <button
-            onClick={() => setActiveTab('people')}
+            onClick={() => setActiveTab("people")}
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
-              activeTab === 'people'
-                ? (isDark ? 'bg-zinc-800 text-white' : 'bg-white text-black shadow-sm')
-                : 'opacity-50'
+              activeTab === "people"
+                ? isDark
+                  ? "bg-zinc-800 text-white"
+                  : "bg-white text-black shadow-sm"
+                : "opacity-50"
             }`}
           >
             People ({people.length})
@@ -90,9 +102,9 @@ function SearchContent() {
           </div>
         ) : (
           <div className="space-y-4">
-            {activeTab === 'polls' ? (
+            {activeTab === "polls" ? (
               polls.length > 0 ? (
-                polls.map(poll => (
+                polls.map((poll) => (
                   <PollCard
                     key={poll.id}
                     poll={poll}
@@ -100,37 +112,49 @@ function SearchContent() {
                     onVote={onVote}
                   />
                 ))
-              ) : <p className="text-center py-10 opacity-40">No polls found.</p>
+              ) : (
+                <p className="text-center py-10 opacity-40">No polls found.</p>
+              )
+            ) : people.length > 0 ? (
+              people.map((profile) => (
+                <Link
+                  key={profile.id}
+                  href={`/profile/${encodeURIComponent(profile.username ?? "")}`}
+                  className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
+                    isDark
+                      ? "bg-zinc-900 border-zinc-800"
+                      : "bg-white border-gray-100"
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold overflow-hidden relative">
+                    {profile.avatar_url ? (
+                      <Image
+                        src={profile.avatar_url}
+                        alt={profile.username ?? "User"}
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                      />
+                    ) : profile.username ? (
+                      profile.username[0].toUpperCase()
+                    ) : (
+                      "U"
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-bold">@{profile.username}</div>
+                    <div className="text-xs opacity-50">View Profile</div>
+                  </div>
+                </Link>
+              ))
             ) : (
-              people.length > 0 ? (
-                people.map(profile => (
-                  <Link
-                    key={profile.id}
-                    href={`/profile/${encodeURIComponent(profile.username ?? "")}`}
-                    className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
-                      isDark ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-100'
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold overflow-hidden">
-                      {profile.avatar_url ? (
-                        <img src={profile.avatar_url} alt={profile.username ?? "User"} className="w-full h-full object-cover" />
-                      ) : (
-                        profile.username ? profile.username[0].toUpperCase() : "U"
-                      )}
-                    </div>
-                    <div>
-                      <div className="font-bold">@{profile.username}</div>
-                      <div className="text-xs opacity-50">View Profile</div>
-                    </div>
-                  </Link>
-                ))
-              ) : <p className="text-center py-10 opacity-40">No users found.</p>
+              <p className="text-center py-10 opacity-40">No users found.</p>
             )}
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
 
 export default function SearchPage() {
@@ -138,5 +162,5 @@ export default function SearchPage() {
     <Suspense fallback={null}>
       <SearchContent />
     </Suspense>
-  )
+  );
 }

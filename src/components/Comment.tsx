@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import { formatRelativeTime } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
-import { useRouter } from 'next/navigation'
+import { useRouter } from "next/navigation";
 import type { Dispatch, SetStateAction } from "react";
 import type { AppUser, CommentRecord } from "@/types/domain";
 
@@ -13,7 +14,11 @@ type CommentProps = {
   user: AppUser | null;
   onDelete: (commentId: string) => void | Promise<void>;
   onUpdate: (commentId: string, content: string) => void | Promise<void>;
-  onReply: (commentId: string, content: string | null, isReport?: boolean) => void | Promise<void>;
+  onReply: (
+    commentId: string,
+    content: string | null,
+    isReport?: boolean,
+  ) => void | Promise<void>;
   replyingTo: string | null;
   setReplyingTo: Dispatch<SetStateAction<string | null>>;
 };
@@ -41,7 +46,9 @@ export default function Comment({
   const replies = allComments.filter((r) => r.parent_id === comment.id);
   const isEdited =
     comment.updated_at &&
-    new Date(comment.updated_at).getTime() - new Date(comment.created_at || "").getTime() > 1000;
+    new Date(comment.updated_at).getTime() -
+      new Date(comment.created_at || "").getTime() >
+      1000;
   const isReplying = replyingTo === comment.id;
 
   const handleSave = () => {
@@ -76,12 +83,14 @@ export default function Comment({
       )}
 
       <div className="group/comment flex gap-3 py-3">
-        <div className="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white font-bold text-[10px] overflow-hidden">
+        <div className="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white font-bold text-[10px] overflow-hidden relative">
           {comment.profiles?.avatar_url ? (
-            <img
+            <Image
               src={comment.profiles.avatar_url}
               alt={comment.profiles?.username ?? "User"}
-              className="w-full h-full object-cover"
+              fill
+              sizes="32px"
+              className="object-cover"
             />
           ) : (
             comment.profiles?.username?.[0]?.toUpperCase()
@@ -93,10 +102,12 @@ export default function Comment({
             <div className="text-xs space-x-1">
               <span
                 className="font-bold cursor-pointer"
-                  onClick={() =>
-                    comment.profiles?.username &&
-                    router.push(`/profile/${encodeURIComponent(comment.profiles.username)}`)
-                  }
+                onClick={() =>
+                  comment.profiles?.username &&
+                  router.push(
+                    `/profile/${encodeURIComponent(comment.profiles.username)}`,
+                  )
+                }
               >
                 @{comment.profiles?.username}
               </span>
@@ -176,17 +187,17 @@ export default function Comment({
           </button>
 
           {isReplying && (
-<div className="mt-2 flex gap-2 items-center">
+            <div className="mt-2 flex gap-2 items-center">
               <textarea
-className={`flex-1 min-h-9 max-h-24 px-3 py-2 text-sm leading-5 rounded-xl border outline-none resize-none ${isDark ? "bg-zinc-800 border-zinc-700 text-white" : "bg-white border-gray-100 text-black"}`}
-rows={1}
+                className={`flex-1 min-h-9 max-h-24 px-3 py-2 text-sm leading-5 rounded-xl border outline-none resize-none ${isDark ? "bg-zinc-800 border-zinc-700 text-white" : "bg-white border-gray-100 text-black"}`}
+                rows={1}
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
                 autoFocus
               />
               <button
                 onClick={handleReply}
-className="h-9 px-4 bg-blue-600 text-white text-xs font-bold rounded-xl transition-all hover:bg-blue-700"
+                className="h-9 px-4 bg-blue-600 text-white text-xs font-bold rounded-xl transition-all hover:bg-blue-700"
               >
                 Post
               </button>

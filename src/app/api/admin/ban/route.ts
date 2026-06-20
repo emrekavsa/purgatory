@@ -22,7 +22,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const token = request.headers
+    .get("authorization")
+    ?.replace(/^Bearer\s+/i, "");
 
   if (!token) {
     return NextResponse.json({ error: "Missing auth token." }, { status: 401 });
@@ -31,7 +33,10 @@ export async function POST(request: NextRequest) {
   const { targetUserId, banned = true } = await request.json();
 
   if (typeof targetUserId !== "string") {
-    return NextResponse.json({ error: "Invalid target user." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid target user." },
+      { status: 400 },
+    );
   }
 
   const authClient = createServerClient(supabaseAnonKey);

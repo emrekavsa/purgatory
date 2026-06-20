@@ -9,9 +9,7 @@ export default function PollCardSkeleton() {
   return (
     <div
       className={`p-5 border rounded-3xl animate-pulse ${
-        isDark
-          ? "bg-zinc-900 border-zinc-800"
-          : "bg-white border-gray-200"
+        isDark ? "bg-zinc-900 border-zinc-800" : "bg-white border-gray-200"
       }`}
     >
       {/* Header: avatar + username + time + category */}
@@ -37,7 +35,9 @@ export default function PollCardSkeleton() {
       </div>
 
       {/* Footer: comment + share */}
-      <div className={`mt-5 flex items-center gap-2 border-t pt-4 ${isDark ? "border-zinc-800" : "border-gray-100"}`}>
+      <div
+        className={`mt-5 flex items-center gap-2 border-t pt-4 ${isDark ? "border-zinc-800" : "border-gray-100"}`}
+      >
         <div className={`h-9 w-16 rounded-full ${shimmer}`} />
         <div className={`h-9 w-11 rounded-full ${shimmer}`} />
       </div>

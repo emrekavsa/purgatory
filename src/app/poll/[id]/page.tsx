@@ -21,7 +21,10 @@ export default function PollDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [isReportOpen, setIsReportOpen] = useState(false);
-  const [reportTarget, setReportTarget] = useState<{ id: string | null; type: ReportTargetType | null }>({ id: null, type: null });
+  const [reportTarget, setReportTarget] = useState<{
+    id: string | null;
+    type: ReportTargetType | null;
+  }>({ id: null, type: null });
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
 
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -82,18 +85,24 @@ export default function PollDetailPage() {
     if (poll) {
       const optimistic: Poll = {
         ...poll,
-        poll_options: poll.poll_options?.map(opt => ({
+        poll_options: poll.poll_options?.map((opt) => ({
           ...opt,
-          vote_count: opt.id === optionId ? Number(opt.vote_count ?? 0) + 1 : opt.vote_count,
-          votes: opt.id === optionId ? [...(opt.votes ?? []), { user_id: user.id }] : opt.votes,
-        }))
+          vote_count:
+            opt.id === optionId
+              ? Number(opt.vote_count ?? 0) + 1
+              : opt.vote_count,
+          votes:
+            opt.id === optionId
+              ? [...(opt.votes ?? []), { user_id: user.id }]
+              : opt.votes,
+        })),
       };
       setPoll(optimistic);
     }
 
-    const { error } = await supabase.from("votes").insert([
-      { poll_id: pollId, option_id: optionId, user_id: user.id },
-    ]);
+    const { error } = await supabase
+      .from("votes")
+      .insert([{ poll_id: pollId, option_id: optionId, user_id: user.id }]);
 
     if (!error) {
       void fetchPoll();
@@ -131,7 +140,11 @@ export default function PollDetailPage() {
     setSubmitting(false);
   };
 
-  const handleReply = async (parentId: string, content: string | null, isReport = false) => {
+  const handleReply = async (
+    parentId: string,
+    content: string | null,
+    isReport = false,
+  ) => {
     if (isReport) {
       if (!user) return requireLogin();
       setReportTarget({ id: parentId, type: "Comment" });

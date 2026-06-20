@@ -18,7 +18,7 @@ export async function fetchPollCards({
   pollId = null,
   limit = 10,
   offset = 0,
-  sort = 'newest',
+  sort = "newest",
 }: FetchPollCardsParams = {}): Promise<Poll[]> {
   const { data, error } = await supabase.rpc("get_poll_cards", {
     p_category: category,
