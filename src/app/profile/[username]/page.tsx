@@ -86,10 +86,15 @@ export default function ProfilePage() {
     }
   }
 
-  const onVote = (pollId: string, optionId: string) => handleVote({
-    user: currentUser, pollId, optionId, requireLogin,
-    onSuccess: (updatedPoll: Poll) => setPolls(prev => prev.map(p => p.id === pollId ? updatedPoll : p))
-  })
+  const onVote = (pollId: string, optionId: string) => {
+    const poll = polls.find(p => p.id === pollId)
+    if (!poll) return
+    handleVote({
+      user: currentUser, poll, optionId, requireLogin,
+      onOptimistic: (updated: Poll) => setPolls(prev => prev.map(p => p.id === pollId ? updated : p)),
+      onSuccess: (updated: Poll) => setPolls(prev => prev.map(p => p.id === pollId ? updated : p))
+    })
+  }
 
   return (
     <div className="max-w-xl mx-auto p-4 pt-10">

@@ -26,21 +26,27 @@ export default function PollDetailPage() {
 
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null);
 
+  const fetchPoll = useCallback(async () => {
+    const p = await fetchPollCard(id);
+    if (p) setPoll(p);
+  }, [id]);
+
+  const fetchComments = useCallback(async () => {
+    const { data: c } = await supabase
+      .from("comments")
+      .select("*, profiles(username, id, avatar_url)")
+      .eq("poll_id", id)
+      .order("created_at", { ascending: true });
+    setComments((c || []) as CommentRecord[]);
+  }, [id]);
+
   const fetchData = useCallback(async () => {
     try {
-const p = await fetchPollCard(id);
-      const { data: c } = await supabase
-        .from("comments")
-        .select("*, profiles(username, id, avatar_url)")
-        .eq("poll_id", id)
-        .order("created_at", { ascending: true });
-
-if (p) setPoll(p);
-      setComments((c || []) as CommentRecord[]);
+      await Promise.all([fetchPoll(), fetchComments()]);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [fetchPoll, fetchComments]);
 
   useEffect(() => {
     if (id) void fetchData();
@@ -59,7 +65,7 @@ if (p) setPoll(p);
           table: "votes",
         },
         () => {
-          void fetchData();
+          void fetchPoll();
         },
       )
       .subscribe();
@@ -67,27 +73,39 @@ if (p) setPoll(p);
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [fetchData, id]);
+  }, [fetchPoll, id]);
 
   const onVote = async (pollId: string, optionId: string) => {
     if (!user) return requireLogin();
+
+    // Optimistic update
+    if (poll) {
+      const optimistic: Poll = {
+        ...poll,
+        poll_options: poll.poll_options?.map(opt => ({
+          ...opt,
+          vote_count: opt.id === optionId ? Number(opt.vote_count ?? 0) + 1 : opt.vote_count,
+          votes: opt.id === optionId ? [...(opt.votes ?? []), { user_id: user.id }] : opt.votes,
+        }))
+      };
+      setPoll(optimistic);
+    }
+
     const { error } = await supabase.from("votes").insert([
-      {
-        poll_id: pollId,
-        option_id: optionId,
-        user_id: user.id,
-      },
+      { poll_id: pollId, option_id: optionId, user_id: user.id },
     ]);
 
     if (!error) {
-      fetchData();
+      void fetchPoll();
     } else if (
       error.message.includes("duplicate key") ||
       error.message.includes("unique constraint")
     ) {
       alert("You already voted!");
+      void fetchPoll();
     } else {
       alert(error.message);
+      void fetchPoll();
     }
   };
 
@@ -106,7 +124,7 @@ if (p) setPoll(p);
 
     if (!error) {
       setNewComment("");
-      fetchData();
+      void fetchComments();
     } else {
       alert(error.message);
     }
@@ -133,7 +151,7 @@ if (p) setPoll(p);
 
     if (!error) {
       setReplyingTo(null);
-      fetchData();
+      void fetchComments();
     } else {
       alert(error.message);
     }
@@ -149,7 +167,7 @@ if (p) setPoll(p);
       .eq("id", commentId)
       .eq("user_id", user.id);
 
-    if (!error) fetchData();
+    if (!error) void fetchComments();
     else alert(error.message);
   };
 
@@ -162,7 +180,7 @@ if (p) setPoll(p);
       .eq("id", commentId)
       .eq("user_id", user.id);
 
-    if (!error) fetchData();
+    if (!error) void fetchComments();
     else alert(error.message);
   };
 

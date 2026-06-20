@@ -35,18 +35,10 @@ function HomeContent() {
       const from = pageIndex * ITEMS_PER_PAGE
       const nextPolls = await fetchPollCards({
         category,
+        sort: sortBy,
         limit: ITEMS_PER_PAGE,
         offset: from,
       })
-      if (sortBy === 'popular') {
-        nextPolls.sort((a, b) => {
-const aVotes = a.poll_options?.reduce((sum, option) => sum + Number(option.vote_count ?? option.votes?.length ?? 0), 0) || 0
-const bVotes = b.poll_options?.reduce((sum, option) => sum + Number(option.vote_count ?? option.votes?.length ?? 0), 0) || 0
-          return bVotes - aVotes
-        })
-      } else if (sortBy === 'interacted') {
-nextPolls.sort((a, b) => Number(b.comment_count ?? b.comments?.length ?? 0) - Number(a.comment_count ?? a.comments?.length ?? 0))
-      }
       setHasMore(nextPolls.length === ITEMS_PER_PAGE)
       setPolls(prev => isNewFilter ? nextPolls : [...prev, ...nextPolls])
     } catch (error) {
@@ -88,10 +80,15 @@ nextPolls.sort((a, b) => Number(b.comment_count ?? b.comments?.length ?? 0) - Nu
     return () => observer.disconnect()
   }, [fetchPolls, hasMore, polls.length])
 
-  const onVote = (pollId: string, optionId: string) => handleVote({
-    user, pollId, optionId, requireLogin,
-    onSuccess: (updatedPoll: Poll) => setPolls(prev => prev.map(p => p.id === pollId ? updatedPoll : p))
-  })
+  const onVote = (pollId: string, optionId: string) => {
+    const poll = polls.find(p => p.id === pollId)
+    if (!poll) return
+    handleVote({
+      user, poll, optionId, requireLogin,
+      onOptimistic: (updated: Poll) => setPolls(prev => prev.map(p => p.id === pollId ? updated : p)),
+      onSuccess: (updated: Poll) => setPolls(prev => prev.map(p => p.id === pollId ? updated : p))
+    })
+  }
 
   return (
     <div className="w-full">

@@ -8,6 +8,7 @@ type FetchPollCardsParams = {
   pollId?: string | null;
   limit?: number;
   offset?: number;
+  sort?: string | null;
 };
 
 export async function fetchPollCards({
@@ -17,6 +18,7 @@ export async function fetchPollCards({
   pollId = null,
   limit = 10,
   offset = 0,
+  sort = 'newest',
 }: FetchPollCardsParams = {}): Promise<Poll[]> {
   const { data, error } = await supabase.rpc("get_poll_cards", {
     p_category: category,
@@ -25,6 +27,7 @@ export async function fetchPollCards({
     p_poll_id: pollId,
     p_limit: limit,
     p_offset: offset,
+    p_sort: sort,
   });
 
   if (error) throw error;
