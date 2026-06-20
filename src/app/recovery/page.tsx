@@ -2,12 +2,13 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/context/AppContext";
 
 type RecoveryStep = "request" | "update";
 
 export default function RecoveryPage() {
+  const supabase = createClient();
   const router = useRouter();
   const { isDark } = useApp();
   const [step, setStep] = useState<RecoveryStep>("request");

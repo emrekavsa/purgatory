@@ -3,7 +3,9 @@ import { Suspense } from "react";
 import { useApp } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
-import Login from "@/components/Login";
+import dynamic from "next/dynamic";
+
+const Login = dynamic(() => import("@/components/Login"), { ssr: false });
 import type { ReactNode } from "react";
 
 export default function ClientShell({ children }: { children: ReactNode }) {

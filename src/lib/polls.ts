@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Poll } from "@/types/domain";
 
 type FetchPollCardsParams = {
@@ -11,7 +11,9 @@ type FetchPollCardsParams = {
   sort?: string | null;
 };
 
-export async function fetchPollCards({
+export async function fetchPollCards(
+  supabase: SupabaseClient,
+  {
   category = null,
   search = null,
   profileUsername = null,
@@ -34,7 +36,10 @@ export async function fetchPollCards({
   return Array.isArray(data) ? (data as Poll[]) : [];
 }
 
-export async function fetchPollCard(pollId: string): Promise<Poll | null> {
-  const polls = await fetchPollCards({ pollId, limit: 1 });
+export async function fetchPollCard(
+  supabase: SupabaseClient,
+  pollId: string,
+): Promise<Poll | null> {
+  const polls = await fetchPollCards(supabase, { pollId, limit: 1 });
   return polls[0] ?? null;
 }

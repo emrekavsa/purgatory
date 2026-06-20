@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import type { User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import type { AppUser } from "@/types/domain";
 
 type AppContextValue = {
@@ -21,10 +21,17 @@ type AppContextValue = {
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
 
-export function AppProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AppUser | null>(null);
+export function AppProvider({
+  children,
+  initialUser,
+}: {
+  children: ReactNode;
+  initialUser: AppUser | null;
+}) {
+  const supabase = createClient();
+  const [user, setUser] = useState<AppUser | null>(initialUser);
   const [isDark, setIsDark] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   const fetchProfile = async (sessionUser: User): Promise<AppUser | null> => {
@@ -62,21 +69,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const handleTheme = (e: MediaQueryListEvent) => setIsDark(e.matches);
     themeQuery.addEventListener("change", handleTheme);
 
-    const getInitialSession = async () => {
-      try {
-        const {
-          data: { user: authUser },
-        } = await supabase.auth.getUser();
-        if (authUser) {
-          const fullUser = await fetchProfile(authUser);
-          setUser(fullUser);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    getInitialSession();
 
     const {
       data: { subscription: authSub },
@@ -115,6 +108,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 export const useApp = () => {
   const context = useContext(AppContext);
-  if (!context) throw new Error("useApp must be used within AppProvider");
+  if (!context) {
+    // Return a default context so it doesn't crash during SSR static prerendering (like _global-error or loading.tsx outside boundary)
+    return {
+      user: null,
+      isDark: false, // fallback
+      loading: false,
+      isLoginOpen: false,
+      setIsLoginOpen: () => {},
+      requireLogin: () => {},
+    };
+  }
   return context;
 };

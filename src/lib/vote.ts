@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { fetchPollCard } from "@/lib/polls";
 import type { AppUser, Poll } from "@/types/domain";
 
@@ -20,6 +20,7 @@ export async function handleVote({
   onSuccess,
 }: HandleVoteParams) {
   if (!user) return requireLogin();
+  const supabase = createClient();
 
   // Optimistic update: mutate local state immediately, no extra fetch
   const optimisticPoll: Poll = {
@@ -41,7 +42,7 @@ export async function handleVote({
     .insert([{ poll_id: poll.id, option_id: optionId, user_id: user.id }]);
 
   if (!error) {
-    const updatedPoll = await fetchPollCard(poll.id);
+    const updatedPoll = await fetchPollCard(supabase, poll.id);
     if (updatedPoll) onSuccess(updatedPoll);
   } else if (
     error.message.includes("duplicate key") ||

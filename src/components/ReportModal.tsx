@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import type { ReportTargetType } from "@/types/domain";
 
 type ReportModalProps = {
@@ -18,6 +18,7 @@ export default function ReportModal({
   targetType,
   userId,
 }: ReportModalProps) {
+  const supabase = createClient();
   const [reason, setReason] = useState("Spam");
   const [loading, setLoading] = useState(false);
 

@@ -3,7 +3,6 @@ import { useApp } from "@/context/AppContext";
 
 export default function PollCardSkeleton() {
   const { isDark } = useApp();
-
   const shimmer = isDark ? "bg-zinc-800" : "bg-gray-200";
 
   return (
@@ -36,7 +35,9 @@ export default function PollCardSkeleton() {
 
       {/* Footer: comment + share */}
       <div
-        className={`mt-5 flex items-center gap-2 border-t pt-4 ${isDark ? "border-zinc-800" : "border-gray-100"}`}
+        className={`mt-5 flex items-center gap-2 border-t pt-4 ${
+          isDark ? "border-zinc-800" : "border-gray-100"
+        }`}
       >
         <div className={`h-9 w-16 rounded-full ${shimmer}`} />
         <div className={`h-9 w-11 rounded-full ${shimmer}`} />

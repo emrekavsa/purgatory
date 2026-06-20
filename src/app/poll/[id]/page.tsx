@@ -1,275 +1,62 @@
-"use client";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { FormEvent } from "react";
-import { useParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { useApp } from "@/context/AppContext";
-import PollCard from "@/components/PollCard";
-import Comment from "@/components/Comment";
-import ReportModal from "@/components/ReportModal";
+import { Suspense } from "react";
+import { createClient } from "@/lib/supabase/server";
 import { fetchPollCard } from "@/lib/polls";
-import type { CommentRecord, Poll, ReportTargetType } from "@/types/domain";
+import PollDetailClient from "@/components/PollDetailClient";
+import type { Metadata } from "next";
+import type { CommentRecord } from "@/types/domain";
 
-export default function PollDetailPage() {
-  const params = useParams<{ id: string }>();
-  const id = params.id;
-  const { user, isDark, requireLogin } = useApp();
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
 
-  const [poll, setPoll] = useState<Poll | null>(null);
-  const [comments, setComments] = useState<CommentRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [newComment, setNewComment] = useState("");
-  const [isReportOpen, setIsReportOpen] = useState(false);
-  const [reportTarget, setReportTarget] = useState<{
-    id: string | null;
-    type: ReportTargetType | null;
-  }>({ id: null, type: null });
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  const poll = await fetchPollCard(supabase, id);
+  if (!poll) return { title: "Poll Not Found" };
 
-  const commentInputRef = useRef<HTMLTextAreaElement | null>(null);
-
-  const fetchPoll = useCallback(async () => {
-    const p = await fetchPollCard(id);
-    if (p) setPoll(p);
-  }, [id]);
-
-  const fetchComments = useCallback(async () => {
-    const { data: c } = await supabase
-      .from("comments")
-      .select("*, profiles(username, id, avatar_url)")
-      .eq("poll_id", id)
-      .order("created_at", { ascending: true });
-    setComments((c || []) as CommentRecord[]);
-  }, [id]);
-
-  const fetchData = useCallback(async () => {
-    try {
-      await Promise.all([fetchPoll(), fetchComments()]);
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchPoll, fetchComments]);
-
-  useEffect(() => {
-    if (id) void fetchData();
-  }, [fetchData, id]);
-
-  useEffect(() => {
-    if (!id) return;
-
-    const channel = supabase
-      .channel("votes-" + id)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "votes",
-        },
-        () => {
-          void fetchPoll();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [fetchPoll, id]);
-
-  const onVote = async (pollId: string, optionId: string) => {
-    if (!user) return requireLogin();
-
-    // Optimistic update
-    if (poll) {
-      const optimistic: Poll = {
-        ...poll,
-        poll_options: poll.poll_options?.map((opt) => ({
-          ...opt,
-          vote_count:
-            opt.id === optionId
-              ? Number(opt.vote_count ?? 0) + 1
-              : opt.vote_count,
-          votes:
-            opt.id === optionId
-              ? [...(opt.votes ?? []), { user_id: user.id }]
-              : opt.votes,
-        })),
-      };
-      setPoll(optimistic);
-    }
-
-    const { error } = await supabase
-      .from("votes")
-      .insert([{ poll_id: pollId, option_id: optionId, user_id: user.id }]);
-
-    if (!error) {
-      void fetchPoll();
-    } else if (
-      error.message.includes("duplicate key") ||
-      error.message.includes("unique constraint")
-    ) {
-      alert("You already voted!");
-      void fetchPoll();
-    } else {
-      alert(error.message);
-      void fetchPoll();
-    }
+  const authorName = poll.profiles?.username || "Anonymous";
+  return {
+    title: `${poll.title} - ${authorName} | Purgatory`,
+    description: String(poll.content || `Vote on this poll and join the discussion on Purgatory!`),
+    openGraph: {
+      title: `${authorName}'s Poll on Purgatory`,
+      description: String(poll.content || `Vote on this poll and join the discussion on Purgatory!`),
+      type: "article",
+    },
   };
+}
 
-  const handleCommentSubmit = async (e?: FormEvent<HTMLFormElement>) => {
-    if (e) e.preventDefault();
-    if (!user || !newComment.trim() || submitting) return;
-    setSubmitting(true);
+export default async function PollDetailPage({ params }: PageProps) {
+  const { id } = await params;
+  const supabase = await createClient();
 
-    const { error } = await supabase.from("comments").insert([
-      {
-        poll_id: id,
-        user_id: user.id,
-        content: newComment.trim(),
-      },
-    ]);
+  const poll = await fetchPollCard(supabase, id);
 
-    if (!error) {
-      setNewComment("");
-      void fetchComments();
-    } else {
-      alert(error.message);
-    }
-    setSubmitting(false);
-  };
-
-  const handleReply = async (
-    parentId: string,
-    content: string | null,
-    isReport = false,
-  ) => {
-    if (isReport) {
-      if (!user) return requireLogin();
-      setReportTarget({ id: parentId, type: "Comment" });
-      setIsReportOpen(true);
-      return;
-    }
-
-    if (!user || !content?.trim()) return;
-    const { error } = await supabase.from("comments").insert([
-      {
-        poll_id: id,
-        user_id: user.id,
-        content: content.trim(),
-        parent_id: parentId,
-      },
-    ]);
-
-    if (!error) {
-      setReplyingTo(null);
-      void fetchComments();
-    } else {
-      alert(error.message);
-    }
-  };
-
-  const handleDeleteComment = async (commentId: string) => {
-    if (!user) return requireLogin();
-    if (!confirm("Delete comment?")) return;
-
-    const { error } = await supabase
-      .from("comments")
-      .delete()
-      .eq("id", commentId)
-      .eq("user_id", user.id);
-
-    if (!error) void fetchComments();
-    else alert(error.message);
-  };
-
-  const handleUpdateComment = async (commentId: string, content: string) => {
-    if (!user) return requireLogin();
-
-    const { error } = await supabase
-      .from("comments")
-      .update({ content, updated_at: new Date().toISOString() })
-      .eq("id", commentId)
-      .eq("user_id", user.id);
-
-    if (!error) void fetchComments();
-    else alert(error.message);
-  };
-
-  if (!poll && !loading)
+  if (!poll) {
     return (
-      <div className="p-10 text-center font-bold opacity-40">
-        Poll not found.
+      <div className="text-center py-20 opacity-40 italic font-bold">
+        Poll not found
       </div>
     );
+  }
+
+  const { data: initialCommentsData } = await supabase
+    .from("comments")
+    .select("*, profiles(username, avatar_url)")
+    .eq("poll_id", id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const initialComments = (initialCommentsData || []) as CommentRecord[];
 
   return (
-    <div className="w-full">
-      <div className="max-w-xl mx-auto p-4 mt-6">
-        <PollCard
-          poll={poll}
-          user={user}
-          onVote={onVote}
-          onCommentClick={() => commentInputRef.current?.focus()}
-        />
-
-        <div
-          className={`mt-8 p-6 rounded-3xl border shadow-sm ${isDark ? "bg-zinc-900 border-zinc-800 text-white" : "bg-white border-gray-100 text-black"}`}
-        >
-          <div className="mb-5 font-bold text-lg tracking-tight">
-            Discussion ({comments.length})
-          </div>
-
-          <form
-            onSubmit={handleCommentSubmit}
-            className="mb-8 flex gap-2 items-center"
-          >
-            <textarea
-              ref={commentInputRef}
-              placeholder="Share your thoughts..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              className={`flex-1 min-h-10 max-h-28 px-3.5 py-2.5 rounded-xl border outline-none resize-none text-sm leading-5 ${isDark ? "bg-zinc-800 border-zinc-700 text-white" : "bg-white border-gray-200 text-black"}`}
-              rows={1}
-            />
-            <button
-              disabled={submitting}
-              type="submit"
-              className="h-10 px-4 bg-blue-600 text-white text-sm font-bold rounded-xl disabled:opacity-50 transition-all"
-            >
-              {submitting ? "..." : "Post"}
-            </button>
-          </form>
-
-          <div className="space-y-4">
-            {comments
-              .filter((c) => !c.parent_id)
-              .map((main) => (
-                <div key={main.id}>
-                  <Comment
-                    comment={main}
-                    allComments={comments}
-                    user={user}
-                    onDelete={handleDeleteComment}
-                    onUpdate={handleUpdateComment}
-                    onReply={handleReply}
-                    replyingTo={replyingTo}
-                    setReplyingTo={setReplyingTo}
-                  />
-                </div>
-              ))}
-          </div>
-        </div>
-      </div>
-
-      <ReportModal
-        isOpen={isReportOpen}
-        onClose={() => setIsReportOpen(false)}
-        targetId={reportTarget.id}
-        targetType={reportTarget.type}
-        userId={user?.id}
+    <Suspense fallback={<div>Loading poll...</div>}>
+      <PollDetailClient
+        initialPoll={poll}
+        initialComments={initialComments}
+        pollId={id}
       />
-    </div>
+    </Suspense>
   );
 }

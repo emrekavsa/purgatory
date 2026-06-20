@@ -1,7 +1,7 @@
 "use client";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/context/AppContext";
 import PollCard from "@/components/PollCard";
 import Link from "next/link";
@@ -14,6 +14,7 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
   const { isDark, user, requireLogin } = useApp();
+  const supabase = createClient();
 
   const [activeTab, setActiveTab] = useState("polls");
   const [polls, setPolls] = useState<Poll[]>([]);
@@ -34,7 +35,7 @@ function SearchContent() {
       .ilike("username", `%${query}%`)
       .limit(10);
 
-    const pollData = await fetchPollCards({ search: query, limit: 10 });
+    const pollData = await fetchPollCards(supabase, { search: query, limit: 10 });
 
     setPolls(pollData);
     setPeople((peopleRes.data || []) as Profile[]);
@@ -45,20 +46,21 @@ function SearchContent() {
     void Promise.resolve().then(getResults);
   }, [getResults]);
 
-  const onVote = (pollId: string, optionId: string) => {
-    const poll = polls.find((p) => p.id === pollId);
-    if (!poll) return;
-    handleVote({
-      user,
-      poll,
-      optionId,
-      requireLogin,
-      onOptimistic: (updated: Poll) =>
-        setPolls((prev) => prev.map((p) => (p.id === pollId ? updated : p))),
-      onSuccess: (updated: Poll) =>
-        setPolls((prev) => prev.map((p) => (p.id === pollId ? updated : p))),
-    });
-  };
+  const onVote = useCallback(
+    (poll: Poll, optionId: string) => {
+      handleVote({
+        user,
+        poll,
+        optionId,
+        requireLogin,
+        onOptimistic: (updated: Poll) =>
+          setPolls((prev) => prev.map((p) => (p.id === poll.id ? updated : p))),
+        onSuccess: (updated: Poll) =>
+          setPolls((prev) => prev.map((p) => (p.id === poll.id ? updated : p))),
+      });
+    },
+    [user, requireLogin]
+  );
 
   return (
     <div key={query} className="w-full">

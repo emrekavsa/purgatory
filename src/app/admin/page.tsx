@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/context/AppContext";
 import PollCard from "@/components/PollCard";
 import type { ReportRecord } from "@/types/domain";
@@ -8,6 +8,7 @@ import type { ReportRecord } from "@/types/domain";
 type AdminTab = "polls" | "comments";
 
 export default function AdminPage() {
+  const supabase = createClient();
   const { user, isDark } = useApp();
   const [activeTab, setActiveTab] = useState<AdminTab>("polls");
   const [reports, setReports] = useState<ReportRecord[]>([]);

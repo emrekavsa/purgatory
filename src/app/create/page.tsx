@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/context/AppContext";
 
 const CATEGORIES = ["General", "Tech", "Sports", "Gaming", "Movies & TV Shows"];
@@ -37,6 +37,7 @@ async function withTimeout<T>(
 }
 
 export default function CreatePoll() {
+  const supabase = createClient();
   const { user, isDark, loading: authLoading, requireLogin } = useApp();
   const router = useRouter();
 

@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { KeyboardEvent } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/context/AppContext";
 
 export default function Navbar() {
+  const supabase = createClient();
   const { user, isDark, requireLogin } = useApp();
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");

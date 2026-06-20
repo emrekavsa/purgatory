@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/context/AppContext";
 import {
   isValidUsername,
@@ -18,6 +18,7 @@ type LoginProps = {
 };
 
 export default function Login({ isOpen, onClose }: LoginProps) {
+  const supabase = createClient();
   const router = useRouter();
   const { isDark } = useApp();
   const [mode, setMode] = useState<LoginMode>("login");

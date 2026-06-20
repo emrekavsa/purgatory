@@ -1,27 +1,33 @@
 "use client";
-import { useState } from "react";
+import { useState, memo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { formatRelativeTime } from "@/lib/utils";
 import { useApp } from "@/context/AppContext";
-import ReportModal from "@/components/ReportModal";
-import { supabase } from "@/lib/supabase";
+import dynamic from "next/dynamic";
+import { createClient } from "@/lib/supabase/client";
+
+const ReportModal = dynamic(() => import("@/components/ReportModal"), { ssr: false });
 import type { AppUser, Poll, PollOption, Vote } from "@/types/domain";
 
 type PollCardProps = {
   poll: Poll | null;
   user: AppUser | null;
-  onVote: (pollId: string, optionId: string) => void | Promise<void>;
+  onVote: (poll: Poll, optionId: string) => void | Promise<void>;
   onDelete?: (pollId: string) => void;
   onCommentClick?: () => void;
+  priority?: boolean;
 };
 
-export default function PollCard({
+export default memo(function PollCard({
   poll,
   user,
   onVote,
   onDelete,
+  priority = false,
 }: PollCardProps) {
+  const supabase = createClient();
   const router = useRouter();
   const { isDark } = useApp();
   const [copied, setCopied] = useState(false);
@@ -74,6 +80,7 @@ export default function PollCard({
   const containerClass = getContainerClass();
   return (
     <div
+      style={{ contentVisibility: "auto", containIntrinsicSize: "auto 400px" }}
       className={`group p-5 border rounded-3xl transition-all relative ${
         isDark
           ? "bg-zinc-900 border-zinc-800 text-white"
@@ -82,10 +89,8 @@ export default function PollCard({
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 text-sm">
-          <div
-            onClick={() =>
-              router.push(`/profile/${encodeURIComponent(authorName)}`)
-            }
+          <Link
+            href={`/profile/${encodeURIComponent(authorName)}`}
             className="flex items-center gap-2 cursor-pointer"
           >
             <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold overflow-hidden relative">
@@ -94,6 +99,7 @@ export default function PollCard({
                   src={poll.profiles.avatar_url}
                   alt={authorName}
                   fill
+                  priority={priority}
                   sizes="32px"
                   className="object-cover"
                 />
@@ -102,7 +108,7 @@ export default function PollCard({
               )}
             </div>
             <span className="font-semibold hover:underline">@{authorName}</span>
-          </div>
+          </Link>
           <span className="opacity-30 text-xs">
             • {formatRelativeTime(poll.created_at)}
           </span>
@@ -157,7 +163,7 @@ export default function PollCard({
           return (
             <button
               key={opt.id}
-              onClick={() => onVote(poll.id, opt.id)}
+              onClick={() => onVote(poll, opt.id)}
               disabled={hasVoted}
               className={`group/opt relative flex overflow-hidden border rounded-2xl min-h-[56px] transition-all
                 ${hasImages ? "flex-col" : "flex-row items-center p-4"}
@@ -185,6 +191,7 @@ export default function PollCard({
                     <Image
                       src={opt.image_url}
                       fill
+                      priority={priority}
                       sizes="(max-width: 640px) 45vw, 280px"
                       className="object-contain p-2"
                       alt={opt.content}
@@ -224,8 +231,8 @@ export default function PollCard({
         className={`mt-5 flex items-center justify-between border-t pt-4 ${isDark ? "border-zinc-800" : "border-gray-100"}`}
       >
         <div className="flex gap-2">
-          <button
-            onClick={() => router.push(`/poll/${poll.id}`)}
+          <Link
+            href={`/poll/${poll.id}`}
             className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-full ${isDark ? "bg-zinc-800 text-zinc-300" : "bg-gray-100 text-gray-600"}`}
           >
             <img
@@ -234,7 +241,7 @@ export default function PollCard({
               className="w-4 h-4 opacity-70"
             />
             <span>{commentCount}</span>
-          </button>
+          </Link>
           <button
             onClick={handleShare}
             className={`flex items-center justify-center w-11 h-9 rounded-full ${copied ? "bg-green-600" : isDark ? "bg-zinc-800" : "bg-gray-100"}`}
@@ -262,4 +269,4 @@ export default function PollCard({
       />
     </div>
   );
-}
+});
