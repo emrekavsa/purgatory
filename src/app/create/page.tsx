@@ -215,13 +215,13 @@ export default function CreatePoll() {
           {options.map((opt, i) => (
             <div
               key={i}
-              className={`p-4 border rounded-2xl flex flex-col gap-3 ${isDark ? "border-zinc-800 bg-zinc-800/30" : "border-gray-200 bg-gray-50"}`}
+className={`p-3 sm:p-4 border rounded-2xl flex flex-col gap-3 ${isDark ? "border-zinc-800 bg-zinc-800/30" : "border-gray-200 bg-gray-50"}`}
             >
-              <div className="flex items-center gap-3">
+<div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <input
                   required
                   placeholder={`Option ${i + 1}`}
-                  className="flex-1 bg-transparent outline-none font-bold"
+className="min-w-0 flex-1 bg-transparent outline-none font-bold text-sm sm:text-base"
                   value={opt.content}
                   onChange={(e) => {
                     const n = [...options]
@@ -230,17 +230,17 @@ export default function CreatePoll() {
                   }}
                 />
 
-                <div className="flex items-center gap-2">
+<div className="shrink-0 flex items-center gap-1.5 sm:gap-2">
                   {options.length > 2 && (
                     <button
                       type="button"
                       onClick={() => removeOption(i)}
-                      className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+className="h-9 w-9 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors flex items-center justify-center"
                     >
                       ✕
                     </button>
                   )}
-                  <label className="px-4 py-2 bg-blue-600 text-white rounded-xl cursor-pointer text-[10px] font-black uppercase hover:bg-blue-700 transition-colors shadow-sm">
+<label className="h-9 px-3 sm:px-4 bg-blue-600 text-white rounded-xl cursor-pointer text-[10px] font-black uppercase hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center whitespace-nowrap">
                     Image
                     <input
                       type="file"
