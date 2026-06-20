@@ -60,6 +60,36 @@ export default function AdminPage() {
     else alert(error.message)
   }
 
+  const handleBanAuthor = async (targetUserId: string | null | undefined, reportId: string) => {
+    if (!targetUserId) {
+      alert("User not found")
+      return
+    }
+
+    if (!confirm("Ban this user?")) return
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    const response = await fetch("/api/admin/ban", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session?.access_token ?? ""}`,
+      },
+      body: JSON.stringify({ targetUserId, banned: true }),
+    })
+
+    if (!response.ok) {
+      const result = await response.json().catch(() => null)
+      alert(result?.error ?? "Failed to ban user")
+      return
+    }
+
+    await handleAction(reportId)
+  }
+
   if (!user?.is_admin) return <div className="p-20 text-center">UNAUTHORIZED</div>
 
   return (
@@ -115,21 +145,7 @@ export default function AdminPage() {
                     Dismiss
                   </button>
                   <button 
-                    onClick={async () => {
-                       if(confirm("Ban this user?")) {
-                          const targetUserId = activeTab === 'polls' ? report.polls?.user_id : report.comments?.user_id;
-                          if (targetUserId) {
-                             const { error } = await supabase.rpc("admin_set_user_ban", {
-                              target_user_id: targetUserId,
-                              banned: true,
-                            });
-                            if (!error) handleAction(report.id);
-                            else alert(error.message);
-                          } else {
-                            alert("User not found");
-                          }
-                       }
-                    }}
+                    onClick={() => handleBanAuthor(activeTab === 'polls' ? report.polls?.user_id : report.comments?.user_id, report.id)}
                     className="px-4 py-1.5 bg-red-600 text-white rounded-full text-[11px] font-bold hover:bg-red-700 transition-all shadow-sm shadow-red-600/20"
                   >
                     Ban Author
