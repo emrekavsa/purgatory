@@ -1,52 +1,72 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/context/AppContext";
 
 type RecoveryStep = "request" | "update";
 
-export default function RecoveryPage() {
+function RecoveryContent() {
   const supabase = createClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isDark } = useApp();
+  
   const [step, setStep] = useState<RecoveryStep>("request");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Custom toast states instead of alert()
+  const [successMsg, setSuccessMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
+    // 1. Handle PKCE flow (if user clicks link in email, URL has ?code=...)
+    const code = searchParams.get("code");
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (!error) {
+          setStep("update");
+        } else {
+          setErrorMsg("Invalid or expired recovery link.");
+        }
+      });
+    }
+
+    // 2. Handle Implicit flow / normal auth changes
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setStep("update");
     });
 
     void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setStep("update");
+      if (data.session && !code) setStep("update");
     });
 
     return () => {
       listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [searchParams, supabase.auth]);
 
   const sendResetEmail = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (loading) return;
-
+    setSuccessMsg("");
+    setErrorMsg("");
     setLoading(true);
+
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/recovery`,
       });
 
       if (error) throw error;
-      alert("Check your email for the password recovery link.");
+      setSuccessMsg("Check your email for the password recovery link.");
+      setEmail(""); // clear input
     } catch (err) {
-      alert(
-        err instanceof Error ? err.message : "Could not send recovery email.",
-      );
+      setErrorMsg(err instanceof Error ? err.message : "Could not send recovery email.");
     } finally {
       setLoading(false);
     }
@@ -55,14 +75,16 @@ export default function RecoveryPage() {
   const updatePassword = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (loading) return;
+    setSuccessMsg("");
+    setErrorMsg("");
 
     if (password.length < 8) {
-      alert("Password must be at least 8 characters.");
+      setErrorMsg("Password must be at least 8 characters.");
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match.");
+      setErrorMsg("Passwords do not match.");
       return;
     }
 
@@ -71,11 +93,15 @@ export default function RecoveryPage() {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
 
-      alert("Password updated. You can now log in.");
+      setSuccessMsg("Password updated. You can now log in.");
       await supabase.auth.signOut();
-      router.push("/");
+      
+      // Redirect after showing success for a moment
+      setTimeout(() => {
+        router.push("/");
+      }, 2000);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Could not update password.");
+      setErrorMsg(err instanceof Error ? err.message : "Could not update password.");
     } finally {
       setLoading(false);
     }
@@ -100,6 +126,18 @@ export default function RecoveryPage() {
             ? "Enter your email and we will send a password recovery link."
             : "Enter a new password for your account."}
         </p>
+
+        {errorMsg && (
+          <div className="mb-4 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-bold text-center">
+            {errorMsg}
+          </div>
+        )}
+
+        {successMsg && (
+          <div className="mb-4 p-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-500 text-sm font-bold text-center">
+            {successMsg}
+          </div>
+        )}
 
         {step === "request" ? (
           <form onSubmit={sendResetEmail} className="flex flex-col gap-2.5">
@@ -150,5 +188,13 @@ export default function RecoveryPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function RecoveryPage() {
+  return (
+    <Suspense fallback={null}>
+      <RecoveryContent />
+    </Suspense>
   );
 }
