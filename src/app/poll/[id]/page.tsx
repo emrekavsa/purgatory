@@ -7,10 +7,8 @@ import { useApp } from "@/context/AppContext";
 import PollCard from "@/components/PollCard";
 import Comment from "@/components/Comment";
 import ReportModal from "@/components/ReportModal";
+import { fetchPollCard } from "@/lib/polls";
 import type { CommentRecord, Poll, ReportTargetType } from "@/types/domain";
-
-const POLL_SELECT =
-  "*, profiles(username, id, avatar_url), poll_options(id, content, image_url, votes(user_id)), comments(id)";
 
 export default function PollDetailPage() {
   const params = useParams<{ id: string }>();
@@ -30,18 +28,14 @@ export default function PollDetailPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const { data: p } = await supabase
-        .from("polls")
-        .select(POLL_SELECT)
-        .eq("id", id)
-        .single();
+const p = await fetchPollCard(id);
       const { data: c } = await supabase
         .from("comments")
         .select("*, profiles(username, id, avatar_url)")
         .eq("poll_id", id)
         .order("created_at", { ascending: true });
 
-      if (p) setPoll(p as Poll);
+if (p) setPoll(p);
       setComments((c || []) as CommentRecord[]);
     } finally {
       setLoading(false);

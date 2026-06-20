@@ -6,9 +6,9 @@ import { supabase } from "@/lib/supabase"
 import { useApp } from "@/context/AppContext"
 import PollCard from "@/components/PollCard"
 import { handleVote } from "@/lib/vote"
+import { fetchPollCards } from "@/lib/polls"
 import type { Poll, Profile } from "@/types/domain"
 
-const POLL_SELECT = '*, profiles(username, id, avatar_url), poll_options(id, content, image_url, votes(user_id)), comments(id)'
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"]
 const IMAGE_ACCEPT = ALLOWED_IMAGE_TYPES.join(",")
 
@@ -33,13 +33,12 @@ export default function ProfilePage() {
 
     setProfile(profileData as Profile)
 
-    const { data: pollData } = await supabase
-      .from("polls")
-      .select(POLL_SELECT)
-      .eq("user_id", profileData.id)
-      .order("created_at", { ascending: false })
+    const pollData = await fetchPollCards({
+      profileUsername: username,
+      limit: 50,
+    })
 
-    if (pollData) setPolls(pollData as Poll[])
+    setPolls(pollData)
   }, [username])
 
   useEffect(() => {

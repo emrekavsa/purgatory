@@ -6,9 +6,8 @@ import { useApp } from '@/context/AppContext'
 import PollCard from '@/components/PollCard'
 import Link from 'next/link'
 import { handleVote } from '@/lib/vote'
+import { fetchPollCards } from '@/lib/polls'
 import type { Poll, Profile } from '@/types/domain'
-
-const POLL_SELECT = '*, profiles(username, id, avatar_url), poll_options(id, content, image_url, votes(user_id)), comments(id)'
 
 function SearchContent() {
   const searchParams = useSearchParams()
@@ -28,19 +27,15 @@ function SearchContent() {
 
     setLoading(true)
 
-    const pollsRes = await supabase
-      .from('polls')
-      .select(POLL_SELECT)
-      .ilike('title', `%${query}%`)
-      .limit(10)
-
     const peopleRes = await supabase
       .from('profiles')
       .select('id, username, avatar_url')
       .ilike('username', `%${query}%`)
       .limit(10)
 
-    setPolls((pollsRes.data || []) as Poll[])
+    const pollData = await fetchPollCards({ search: query, limit: 10 })
+
+    setPolls(pollData)
     setPeople((peopleRes.data || []) as Profile[])
     setLoading(false)
   }, [query])

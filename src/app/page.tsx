@@ -1,13 +1,12 @@
 "use client"
 import { Suspense, useCallback, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { supabase } from "@/lib/supabase"
 import { useApp } from "@/context/AppContext"
 import PollCard from "@/components/PollCard"
 import { handleVote } from "@/lib/vote"
+import { fetchPollCards } from "@/lib/polls"
 import type { Poll } from "@/types/domain"
 
-const POLL_SELECT = '*, profiles(username, id, avatar_url), poll_options(id, content, image_url, votes(user_id)), comments(id)'
 const ITEMS_PER_PAGE = 10
 
 function HomeContent() {
@@ -26,27 +25,20 @@ function HomeContent() {
     isNewFilter ? setDataLoading(true) : setLoadingMore(true)
 
     try {
-      let query = supabase.from("polls").select(POLL_SELECT)
-
-      if (category) query = query.eq('category', category)
-
-      query = query.order('created_at', { ascending: false })
-
       const from = pageIndex * ITEMS_PER_PAGE
-      const to = from + ITEMS_PER_PAGE - 1
-      const { data, error } = await query.range(from, to)
-
-      if (error) throw error
-
-      const nextPolls = [...((data || []) as Poll[])]
+      const nextPolls = await fetchPollCards({
+        category,
+        limit: ITEMS_PER_PAGE,
+        offset: from,
+      })
       if (sortBy === 'popular') {
         nextPolls.sort((a, b) => {
-          const aVotes = a.poll_options?.reduce((sum, option) => sum + (option.votes?.length || 0), 0) || 0
-          const bVotes = b.poll_options?.reduce((sum, option) => sum + (option.votes?.length || 0), 0) || 0
+const aVotes = a.poll_options?.reduce((sum, option) => sum + Number(option.vote_count ?? option.votes?.length ?? 0), 0) || 0
+const bVotes = b.poll_options?.reduce((sum, option) => sum + Number(option.vote_count ?? option.votes?.length ?? 0), 0) || 0
           return bVotes - aVotes
         })
       } else if (sortBy === 'interacted') {
-        nextPolls.sort((a, b) => (b.comments?.length || 0) - (a.comments?.length || 0))
+nextPolls.sort((a, b) => Number(b.comment_count ?? b.comments?.length ?? 0) - Number(a.comment_count ?? a.comments?.length ?? 0))
       }
       setHasMore(nextPolls.length === ITEMS_PER_PAGE)
       setPolls(prev => isNewFilter ? nextPolls : [...prev, ...nextPolls])

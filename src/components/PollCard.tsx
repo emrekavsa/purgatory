@@ -26,10 +26,11 @@ export default function PollCard({ poll, user, onVote, onDelete }: PollCardProps
   const pollOptions = poll.poll_options;
   const authorName = poll.profiles?.username || "Anonymous";
   const hasImages = pollOptions.some((opt: PollOption) => opt.image_url);
-  const commentCount = poll.comments?.length || 0;
+  const commentCount = Number(poll.comment_count ?? poll.comments?.length ?? 0);
   const category = poll.category || "General";
   const totalVotes = poll.poll_options.reduce(
-    (sum: number, opt: PollOption) => sum + (opt.votes?.length || 0),
+    (sum: number, opt: PollOption) =>
+      sum + Number(opt.vote_count ?? opt.votes?.length ?? 0),
     0,
   );
 
@@ -138,7 +139,7 @@ export default function PollCard({ poll, user, onVote, onDelete }: PollCardProps
 
       <div className={containerClass}>
         {pollOptions.map((opt: PollOption) => {
-          const voteCount = opt.votes?.length || 0;
+            const voteCount = Number(opt.vote_count ?? opt.votes?.length ?? 0);
           const percent =
             totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
           const isMyChoice = opt.id === userVote?.id;

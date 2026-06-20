@@ -26,6 +26,7 @@ export type PollOption = {
   content: string;
   image_url?: string | null;
   option_type?: string | null;
+  vote_count?: number | string | null;
   votes?: Vote[];
   [key: string]: unknown;
 };
@@ -38,6 +39,7 @@ export type Poll = {
   user_id?: string | null;
   profiles?: Profile | null;
   poll_options?: PollOption[];
+  comment_count?: number | string | null;
   comments?: Array<{ id: string; [key: string]: unknown }>;
   [key: string]: unknown;
 };
