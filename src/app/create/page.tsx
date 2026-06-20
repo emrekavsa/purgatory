@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase"
 import { useApp } from "@/context/AppContext"
 
 const CATEGORIES = ["General", "Tech", "Sports", "Gaming", "Movies & TV Shows"]
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"]
+const IMAGE_ACCEPT = ALLOWED_IMAGE_TYPES.join(",")
 
 type PollOptionDraft = {
   content: string
@@ -71,11 +73,26 @@ export default function CreatePoll() {
   const handleFileChange = (index: number, e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        alert("Please upload a JPG, PNG, or WebP image.")
+        e.target.value = ""
+        return
+      }
+
       const newOptions = [...options]
+      if (newOptions[index].preview) URL.revokeObjectURL(newOptions[index].preview)
       newOptions[index].image = file
       newOptions[index].preview = URL.createObjectURL(file)
       setOptions(newOptions)
     }
+    e.target.value = ""
+  }
+
+  const removeOptionImage = (index: number) => {
+    const newOptions = [...options]
+    if (newOptions[index].preview) URL.revokeObjectURL(newOptions[index].preview)
+    newOptions[index] = { ...newOptions[index], image: null, preview: null }
+    setOptions(newOptions)
   }
 
   const addOption = () =>
@@ -245,18 +262,25 @@ className="h-9 w-9 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors
                     <input
                       type="file"
                       className="hidden"
-                      accept="image/*"
+                      accept={IMAGE_ACCEPT}
                       onChange={(e) => handleFileChange(i, e)}
                     />
                   </label>
                 </div>
               </div>
 
-              {opt.preview && (
-                <div className="relative w-full h-32 rounded-xl overflow-hidden bg-black">
-                  <img src={opt.preview} className="w-full h-full object-contain" alt="" />
-                </div>
-              )}
+{opt.preview && (
+<div className="relative w-full h-32 rounded-xl overflow-hidden border border-white/10 bg-black">
+<img src={opt.preview} className="w-full h-full object-contain p-2" alt="" />
+<button
+type="button"
+onClick={() => removeOptionImage(i)}
+className="absolute right-2 top-2 rounded-full bg-black/70 px-3 py-1 text-[10px] font-black uppercase text-white backdrop-blur hover:bg-black"
+>
+Remove
+</button>
+</div>
+)}
             </div>
           ))}
 

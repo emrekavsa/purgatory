@@ -9,6 +9,8 @@ import { handleVote } from "@/lib/vote"
 import type { Poll, Profile } from "@/types/domain"
 
 const POLL_SELECT = '*, profiles(username, id, avatar_url), poll_options(id, content, image_url, votes(user_id)), comments(id)'
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"]
+const IMAGE_ACCEPT = ALLOWED_IMAGE_TYPES.join(",")
 
 export default function ProfilePage() {
   const params = useParams<{ username: string }>()
@@ -49,6 +51,10 @@ export default function ProfilePage() {
       setUploading(true)
       const file = event.target.files?.[0]
       if (!file || !currentUser) return
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        alert("Please upload a JPG, PNG, or WebP image.")
+        return
+      }
 
       const filePath = `${currentUser.id}/avatar`
 
@@ -77,6 +83,7 @@ export default function ProfilePage() {
       alert('Error uploading avatar!')
     } finally {
       setUploading(false)
+      event.target.value = ""
     }
   }
 
@@ -100,7 +107,7 @@ export default function ProfilePage() {
 
           {isOwnProfile && (
             <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-              <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} disabled={uploading} />
+              <input type="file" accept={IMAGE_ACCEPT} className="hidden" onChange={uploadAvatar} disabled={uploading} />
               <span className="text-white text-xs font-bold uppercase tracking-tighter">
                 {uploading ? 'uploading...' : 'edit'}
               </span>

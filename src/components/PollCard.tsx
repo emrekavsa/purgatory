@@ -170,12 +170,12 @@ export default function PollCard({ poll, user, onVote, onDelete }: PollCardProps
 
               {hasImages && (
                 <div
-                  className={`relative w-full aspect-[4/3] overflow-hidden border-b border-inherit z-10 ${isDark ? "bg-black" : "bg-zinc-100"}`}
+                  className="relative w-full aspect-[4/3] overflow-hidden border-b border-inherit bg-black z-10"
                 >
                   {opt.image_url ? (
                     <img
                       src={opt.image_url}
-                      className="w-full h-full object-contain p-1"
+                      className="w-full h-full object-contain p-2"
                       alt={opt.content}
                     />
                   ) : (
