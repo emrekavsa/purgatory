@@ -1,18 +1,23 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, Suspense } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  Suspense,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useApp } from "@/context/AppContext";
 
 type RecoveryStep = "request" | "update";
 
 function RecoveryContent() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isDark } = useApp();
-  
+  const exchangedCodeRef = useRef<string | null>(null);
   const [step, setStep] = useState<RecoveryStep>("request");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,29 +31,27 @@ function RecoveryContent() {
   useEffect(() => {
     // 1. Handle PKCE flow (if user clicks link in email, URL has ?code=...)
     const code = searchParams.get("code");
-    if (code) {
+    if (code && exchangedCodeRef.current !== code) {
+      exchangedCodeRef.current = code;
       supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
         if (!error) {
           setStep("update");
+          window.history.replaceState(null, "", "/recovery");
         } else {
           setErrorMsg("Invalid or expired recovery link.");
         }
       });
     }
 
-    // 2. Handle Implicit flow / normal auth changes
+    // 2. Handle the recovery event emitted by implicit links.
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setStep("update");
-    });
-
-    void supabase.auth.getSession().then(({ data }) => {
-      if (data.session && !code) setStep("update");
     });
 
     return () => {
       listener.subscription.unsubscribe();
     };
-  }, [searchParams, supabase.auth]);
+  }, [searchParams, supabase]);
 
   const sendResetEmail = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -107,18 +110,15 @@ function RecoveryContent() {
     }
   };
 
-  const inputClass = `w-full px-4 py-2.5 border rounded-xl outline-none text-sm transition-all ${
-    isDark
-      ? "bg-zinc-800 border-zinc-700 text-white"
-      : "bg-gray-50 border-gray-200 text-black"
-  }`;
+  const inputClass =
+    "w-full px-4 py-2.5 border rounded-xl outline-none text-sm transition-all bg-gray-50 border-gray-200 text-black dark:bg-zinc-800 dark:border-zinc-700 dark:text-white";
 
   return (
     <div
-      className={`min-h-[calc(100dvh-3.5rem)] flex items-start justify-center px-4 pt-16 md:pt-20 ${isDark ? "bg-black text-white" : "bg-white text-black"}`}
+      className="min-h-[calc(100dvh-3.5rem)] flex items-start justify-center px-4 pt-16 md:pt-20 bg-white text-black dark:bg-black dark:text-white"
     >
       <div
-        className={`w-full max-w-sm p-6 border rounded-2xl ${isDark ? "bg-zinc-900 border-zinc-800" : "bg-white border-gray-200"}`}
+        className="w-full max-w-sm p-6 border rounded-2xl bg-white border-gray-200 dark:bg-zinc-900 dark:border-zinc-800"
       >
         <h1 className="text-xl font-black mb-1">Account recovery</h1>
         <p className="text-xs opacity-50 mb-5">

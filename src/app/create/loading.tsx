@@ -1,12 +1,10 @@
 "use client";
-import { useApp } from "@/context/AppContext";
 
 export default function CreateLoading() {
-  const { isDark } = useApp();
-  const shimmer = isDark ? "bg-zinc-800" : "bg-gray-200";
-  const border = isDark ? "border-zinc-800" : "border-gray-100";
-  const cardBg = isDark ? "bg-zinc-900" : "bg-white";
-  const optionBg = isDark ? "bg-zinc-800/30" : "bg-gray-50";
+  const shimmer = "bg-gray-200 dark:bg-zinc-800";
+  const border = "border-gray-100 dark:border-zinc-800";
+  const cardBg = "bg-white dark:bg-zinc-900";
+  const optionBg = "bg-gray-50 dark:bg-zinc-800/30";
 
   return (
     <div className="max-w-xl mx-auto p-4 mt-10 w-full animate-pulse">
@@ -42,7 +40,7 @@ export default function CreateLoading() {
         </div>
 
         {/* Submit button skeleton */}
-        <div className={`w-full h-[56px] rounded-2xl ${isDark ? "bg-blue-600/20" : "bg-blue-100"}`} />
+        <div className="w-full h-[56px] rounded-2xl bg-blue-100 dark:bg-blue-600/20" />
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import Comment from "@/components/Comment";
 import PollCardSkeleton from "@/components/PollCardSkeleton";
 import { handleVote } from "@/lib/vote";
 import type { Poll, CommentRecord } from "@/types/domain";
+import { MAX_COMMENT_LENGTH } from "@/lib/validation";
 
 export default function PollDetailClient({
   initialPoll,
@@ -84,14 +85,15 @@ export default function PollDetailClient({
   const handleComment = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return requireLogin();
-    if (!newComment.trim() || commenting) return;
+    const content = newComment.trim();
+    if (!content || content.length > MAX_COMMENT_LENGTH || commenting) return;
 
     setCommenting(true);
     const { error } = await supabase.from("comments").insert([
       {
         poll_id: pollId,
         user_id: user.id,
-        content: newComment.trim(),
+        content,
       },
     ]);
 
@@ -119,28 +121,84 @@ export default function PollDetailClient({
   };
 
   const handleCommentUpdate = async (commentId: string, content: string) => {
+    const normalizedContent = content.trim();
+    if (!normalizedContent || normalizedContent.length > MAX_COMMENT_LENGTH) {
+      alert(`Comments must be between 1 and ${MAX_COMMENT_LENGTH} characters.`);
+      return;
+    }
+
     const { error } = await supabase
       .from("comments")
-      .update({ content })
+      .update({ content: normalizedContent })
       .eq("id", commentId);
     if (!error) {
       setComments((prev) =>
-        prev.map((c) => (c.id === commentId ? { ...c, content } : c)),
+        prev.map((c) =>
+          c.id === commentId ? { ...c, content: normalizedContent } : c,
+        ),
       );
+    } else {
+      alert(error.message);
     }
+  };
+
+  const handleCommentDelete = async (commentId: string) => {
+    if (!user || !confirm("Delete this comment?")) return;
+
+    const { error } = await supabase
+      .from("comments")
+      .delete()
+      .eq("id", commentId);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    const removedIds = new Set<string>([commentId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const comment of comments) {
+        if (
+          comment.parent_id &&
+          removedIds.has(comment.parent_id) &&
+          !removedIds.has(comment.id)
+        ) {
+          removedIds.add(comment.id);
+          changed = true;
+        }
+      }
+    }
+
+    setComments((previous) =>
+      previous.filter((comment) => !removedIds.has(comment.id)),
+    );
+    setPoll((current) =>
+      current
+        ? {
+            ...current,
+            comment_count: String(
+              Math.max(0, Number(current.comment_count || 0) - removedIds.size),
+            ),
+          }
+        : current,
+    );
   };
 
   const handleReply = async (
     commentId: string,
     content: string | null,
-    isReport?: boolean,
   ) => {
     if (!user) return requireLogin();
-    if (isReport) {
-      // Dummy logic for report click in Comment.tsx
+    const normalizedContent = content?.trim();
+    if (
+      !normalizedContent ||
+      normalizedContent.length > MAX_COMMENT_LENGTH ||
+      commenting
+    ) {
       return;
     }
-    if (!content) return;
 
     setCommenting(true);
     const { error } = await supabase.from("comments").insert([
@@ -148,7 +206,7 @@ export default function PollDetailClient({
         poll_id: pollId,
         user_id: user.id,
         parent_id: commentId,
-        content: content,
+        content: normalizedContent,
       },
     ]);
     if (!error) {
@@ -163,6 +221,8 @@ export default function PollDetailClient({
       if (data) {
         setComments(data as CommentRecord[]);
       }
+    } else {
+      alert(error.message);
     }
     setCommenting(false);
   };
@@ -196,6 +256,7 @@ export default function PollDetailClient({
               placeholder="Write a comment..."
               required
               value={newComment}
+              maxLength={MAX_COMMENT_LENGTH}
               onChange={(e) => setNewComment(e.target.value)}
               className={`flex-1 px-4 py-3 rounded-2xl border outline-none text-sm transition-all ${
                 isDark
@@ -221,11 +282,7 @@ export default function PollDetailClient({
                       comment={main}
                       allComments={comments}
                       user={user}
-                      onDelete={(deletedId) =>
-                        setComments((prev) =>
-                          prev.filter((c) => c.id !== deletedId),
-                        )
-                      }
+                      onDelete={handleCommentDelete}
                       onUpdate={handleCommentUpdate}
                       onReply={handleReply}
                       replyingTo={replyingTo}

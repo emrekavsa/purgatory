@@ -2,7 +2,7 @@ import { AppProvider } from "@/context/AppContext";
 import "../styles/globals.css";
 import ClientShell from "@/components/ClientShell";
 import localFont from "next/font/local";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 const aktura = localFont({
@@ -16,6 +16,14 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = {
   title: "Purgatory",
   description: "Join the discussion and cast your vote.",
+};
+
+export const viewport: Viewport = {
+  colorScheme: "light dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {

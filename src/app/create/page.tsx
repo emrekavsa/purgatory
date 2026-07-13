@@ -4,37 +4,21 @@ import type { ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useApp } from "@/context/AppContext";
+import {
+  IMAGE_ACCEPT,
+  MAX_POLL_OPTION_LENGTH,
+  MAX_POLL_TITLE_LENGTH,
+  getImageExtension,
+  validateImageFile,
+} from "@/lib/validation";
 
 const CATEGORIES = ["General", "Tech", "Sports", "Gaming", "Movies & TV Shows"];
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const IMAGE_ACCEPT = ALLOWED_IMAGE_TYPES.join(",");
 
 type PollOptionDraft = {
   content: string;
   image: File | null;
   preview: string | null;
 };
-
-const REQUEST_TIMEOUT_MS = 20_000;
-
-async function withTimeout<T>(
-  request: PromiseLike<T>,
-  message: string,
-): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(
-      () => reject(new Error(message)),
-      REQUEST_TIMEOUT_MS,
-    );
-  });
-
-  try {
-    return await Promise.race([request, timeout]);
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-  }
-}
 
 export default function CreatePoll() {
   const supabase = useMemo(() => createClient(), []);
@@ -77,14 +61,15 @@ export default function CreatePoll() {
     };
   }, [supabase]);
 
-  const handleFileChange = (
+  const handleFileChange = async (
     index: number,
     e: ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        alert("Please upload a JPG, PNG, or WebP image.");
+      const validationError = await validateImageFile(file);
+      if (validationError) {
+        alert(validationError);
         e.target.value = "";
         return;
       }
@@ -122,8 +107,34 @@ export default function CreatePoll() {
     if (loading) return;
     if (!user) return requireLogin();
 
-    const imagesCount = options.filter((opt) => opt.image !== null).length;
-    if (imagesCount > 0 && imagesCount < options.length) {
+    const normalizedTitle = title.trim();
+    const normalizedOptions = options.map((option) => ({
+      ...option,
+      content: option.content.trim(),
+    }));
+
+    if (!normalizedTitle || normalizedTitle.length > MAX_POLL_TITLE_LENGTH) {
+      alert(`The question must be between 1 and ${MAX_POLL_TITLE_LENGTH} characters.`);
+      return;
+    }
+
+    if (
+      normalizedOptions.some(
+        (option) =>
+          !option.content || option.content.length > MAX_POLL_OPTION_LENGTH,
+      )
+    ) {
+      alert(`Each option must be between 1 and ${MAX_POLL_OPTION_LENGTH} characters.`);
+      return;
+    }
+
+    if (!CATEGORIES.includes(category)) {
+      alert("Please select a valid category.");
+      return;
+    }
+
+    const imagesCount = normalizedOptions.filter((opt) => opt.image !== null).length;
+    if (imagesCount > 0 && imagesCount < normalizedOptions.length) {
       alert("Please either add images to all options or none of them.");
       return;
     }
@@ -133,70 +144,74 @@ export default function CreatePoll() {
 
     setLoading(true);
     try {
-      const optionsData = await Promise.all(
-        options.map(async (opt, i) => {
-          let imageUrl = null;
-          if (opt.image) {
-            const folderName = `${user.id}-${Date.now()}`;
-            const fileName = `${folderName}/${i}.jpg`;
-            const { error: uploadErr } = await withTimeout(
-              supabase.storage.from("poll-images").upload(fileName, opt.image),
-              "Image upload timed out. Please try again.",
-            );
+      const uploadGroup = crypto.randomUUID();
+      const optionsData = [];
 
-            if (uploadErr) throw uploadErr;
-            uploadedFilePaths.push(fileName);
+      for (const [index, option] of normalizedOptions.entries()) {
+        let imageUrl: string | null = null;
 
-            const { data } = supabase.storage
-              .from("poll-images")
-              .getPublicUrl(fileName);
-            imageUrl = data.publicUrl;
-          }
+        if (option.image) {
+          const extension = getImageExtension(option.image);
+          if (!extension) throw new Error("Unsupported image type.");
 
-          return { content: opt.content, image_url: imageUrl };
-        }),
-      );
+          const fileName = `${user.id}/${uploadGroup}/${index}.${extension}`;
+          const { error: uploadErr } = await supabase.storage
+            .from("poll-images")
+            .upload(fileName, option.image, {
+              cacheControl: "31536000",
+              contentType: option.image.type,
+              upsert: false,
+            });
 
-      const { data: poll, error: pollErr } = await withTimeout(
-        supabase
-          .from("polls")
-          .insert([{ title, category, user_id: user.id }])
-          .select("id")
-          .single(),
-        "Poll creation timed out. Please try again.",
-      );
+          if (uploadErr) throw uploadErr;
+          uploadedFilePaths.push(fileName);
+
+          const { data } = supabase.storage
+            .from("poll-images")
+            .getPublicUrl(fileName);
+          imageUrl = data.publicUrl;
+        }
+
+        optionsData.push({ content: option.content, image_url: imageUrl });
+      }
+
+      const { data: poll, error: pollErr } = await supabase
+        .from("polls")
+        .insert([{ title: normalizedTitle, category, user_id: user.id }])
+        .select("id")
+        .single();
 
       if (pollErr) throw pollErr;
       createdPollId = poll.id;
 
-      const { error: optionsErr } = await withTimeout(
-        supabase.from("poll_options").insert(
+      const { error: optionsErr } = await supabase
+        .from("poll_options")
+        .insert(
           optionsData.map((opt) => ({
             poll_id: poll.id,
             option_type: opt.image_url ? "image" : "text",
             content: opt.content,
             image_url: opt.image_url,
           })),
-        ),
-        "Poll options creation timed out. Please try again.",
-      );
+        );
 
       if (optionsErr) throw optionsErr;
 
       router.push("/");
     } catch (err) {
       if (createdPollId) {
-        await withTimeout(
-          supabase.from("polls").delete().eq("id", createdPollId),
-          "Poll cleanup timed out.",
-        ).catch(() => undefined);
+        await supabase
+          .from("polls")
+          .delete()
+          .eq("id", createdPollId)
+          .then(() => undefined);
       }
 
       if (uploadedFilePaths.length > 0) {
-        await withTimeout(
-          supabase.storage.from("poll-images").remove(uploadedFilePaths),
-          "Image cleanup timed out.",
-        ).catch(() => undefined);
+        await supabase.storage
+          .from("poll-images")
+          .remove(uploadedFilePaths)
+          .then(() => undefined);
       }
 
       alert(err instanceof Error ? err.message : "Something went wrong");
@@ -213,6 +228,7 @@ export default function CreatePoll() {
       >
         <input
           required
+          maxLength={MAX_POLL_TITLE_LENGTH}
           placeholder="The Question?"
           className={`w-full p-4 mb-4 rounded-2xl border outline-none font-bold ${isDark ? "bg-zinc-800 border-zinc-700 text-white" : "bg-gray-50 border-gray-200 text-black"}`}
           onChange={(e) => setTitle(e.target.value)}
@@ -255,6 +271,7 @@ export default function CreatePoll() {
               <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <input
                   required
+                  maxLength={MAX_POLL_OPTION_LENGTH}
                   placeholder={`Option ${i + 1}`}
                   className="min-w-0 flex-1 bg-transparent outline-none font-bold text-sm sm:text-base"
                   value={opt.content}

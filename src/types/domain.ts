@@ -4,6 +4,7 @@ export type Profile = {
   id: string;
   username?: string | null;
   avatar_url?: string | null;
+  username_set?: boolean | null;
   is_admin?: boolean | null;
   isbanned?: boolean | null;
   [key: string]: unknown;
@@ -12,6 +13,7 @@ export type Profile = {
 export type AppUser = User & {
   username?: string;
   avatar_url?: string | null;
+  username_set?: boolean;
   is_admin?: boolean;
   isbanned?: boolean;
 };

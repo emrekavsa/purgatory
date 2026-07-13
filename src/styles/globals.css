@@ -1,11 +1,18 @@
 @import "tailwindcss";
 
+:root {
+  color-scheme: light dark;
+}
+
+html,
 body {
+  min-height: 100%;
   background-color: white;
   color: black;
 }
 
 @media (prefers-color-scheme: dark) {
+  html,
   body {
     background-color: black;
     color: white;

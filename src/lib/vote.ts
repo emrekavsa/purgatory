@@ -20,6 +20,7 @@ export async function handleVote({
   onSuccess,
 }: HandleVoteParams) {
   if (!user) return requireLogin();
+  if (!poll.poll_options?.some((option) => option.id === optionId)) return;
   const supabase = createClient();
 
   // Optimistic update: mutate local state immediately, no extra fetch
@@ -37,21 +38,31 @@ export async function handleVote({
   };
   onOptimistic(optimisticPoll);
 
-  const { error } = await supabase
-    .from("votes")
-    .insert([{ poll_id: poll.id, option_id: optionId, user_id: user.id }]);
+  try {
+    const { error } = await supabase
+      .from("votes")
+      .insert([{ poll_id: poll.id, option_id: optionId, user_id: user.id }]);
 
-  if (!error) {
+    if (error) {
+      onSuccess(poll);
+
+      if (
+        error.code === "23505" ||
+        error.message.includes("duplicate key") ||
+        error.message.includes("unique constraint")
+      ) {
+        alert("You already voted!");
+      } else {
+        alert(error.message);
+      }
+      return;
+    }
+
     const updatedPoll = await fetchPollCard(supabase, poll.id);
-    if (updatedPoll) onSuccess(updatedPoll);
-  } else if (
-    error.message.includes("duplicate key") ||
-    error.message.includes("unique constraint")
-  ) {
-    alert("You already voted!");
-  } else {
-    // Revert optimistic update on error
-    onSuccess(poll);
-    alert(error.message);
+    onSuccess(updatedPoll ?? optimisticPoll);
+  } catch {
+    // The insert may already have succeeded, so preserve the optimistic vote
+    // and let the next poll refresh reconcile the authoritative totals.
+    onSuccess(optimisticPoll);
   }
 }

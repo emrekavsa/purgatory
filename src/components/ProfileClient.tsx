@@ -9,9 +9,11 @@ import PollCardSkeleton from "@/components/PollCardSkeleton";
 import { handleVote } from "@/lib/vote";
 import { fetchPollCards } from "@/lib/polls";
 import type { Poll, Profile } from "@/types/domain";
+import {
+  IMAGE_ACCEPT,
+  validateImageFile,
+} from "@/lib/validation";
 
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const IMAGE_ACCEPT = ALLOWED_IMAGE_TYPES.join(",");
 const ITEMS_PER_PAGE = 10;
 
 export default function ProfileClient({
@@ -101,8 +103,9 @@ export default function ProfileClient({
       setUploading(true);
       const file = event.target.files?.[0];
       if (!file || !currentUser) return;
-      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        alert("Please upload a JPG, PNG, or WebP image.");
+      const validationError = await validateImageFile(file);
+      if (validationError) {
+        alert(validationError);
         return;
       }
 
@@ -110,7 +113,11 @@ export default function ProfileClient({
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, file, {
+          cacheControl: "31536000",
+          contentType: file.type,
+          upsert: true,
+        });
 
       if (uploadError) throw uploadError;
 

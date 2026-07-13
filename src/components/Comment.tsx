@@ -6,6 +6,8 @@ import { useApp } from "@/context/AppContext";
 import { useRouter } from "next/navigation";
 import type { Dispatch, SetStateAction } from "react";
 import type { AppUser, CommentRecord } from "@/types/domain";
+import ReportModal from "@/components/ReportModal";
+import { MAX_COMMENT_LENGTH } from "@/lib/validation";
 
 type CommentProps = {
   comment: CommentRecord;
@@ -17,7 +19,6 @@ type CommentProps = {
   onReply: (
     commentId: string,
     content: string | null,
-    isReport?: boolean,
   ) => void | Promise<void>;
   replyingTo: string | null;
   setReplyingTo: Dispatch<SetStateAction<string | null>>;
@@ -42,6 +43,7 @@ export default function Comment({
     `@${comment.profiles?.username} `,
   );
   const [collapsed, setCollapsed] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   const replies = allComments.filter((r) => r.parent_id === comment.id);
   const isEdited =
@@ -52,13 +54,16 @@ export default function Comment({
   const isReplying = replyingTo === comment.id;
 
   const handleSave = () => {
-    if (!editContent.trim()) return;
-    onUpdate(comment.id, editContent.trim());
+    const content = editContent.trim();
+    if (!content || content.length > MAX_COMMENT_LENGTH) return;
+    void onUpdate(comment.id, content);
     setIsEditing(false);
   };
 
   const handleReply = () => {
-    onReply(comment.id, replyContent.trim());
+    const content = replyContent.trim();
+    if (!content || content.length > MAX_COMMENT_LENGTH) return;
+    void onReply(comment.id, content);
     setReplyContent(`@${comment.profiles?.username} `);
   };
 
@@ -120,7 +125,7 @@ export default function Comment({
             <div className="flex gap-2 opacity-0 group-hover/comment:opacity-100 transition-opacity items-center">
               {user && user.id !== comment.user_id && (
                 <button
-                  onClick={() => onReply(comment.id, null, true)}
+                  onClick={() => setIsReportOpen(true)}
                   className="p-1 opacity-40 hover:opacity-100 hover:bg-red-500/10 rounded-full transition-all"
                 >
                   <img
@@ -154,6 +159,7 @@ export default function Comment({
               <textarea
                 className={`w-full p-3 text-sm rounded-xl border outline-none resize-none ${isDark ? "bg-zinc-800 border-zinc-700 text-white" : "bg-white border-gray-100 text-black"}`}
                 rows={2}
+                maxLength={MAX_COMMENT_LENGTH}
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
                 autoFocus
@@ -191,6 +197,7 @@ export default function Comment({
               <textarea
                 className={`flex-1 min-h-9 max-h-24 px-3 py-2 text-sm leading-5 rounded-xl border outline-none resize-none ${isDark ? "bg-zinc-800 border-zinc-700 text-white" : "bg-white border-gray-100 text-black"}`}
                 rows={1}
+                maxLength={MAX_COMMENT_LENGTH}
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
                 autoFocus
@@ -221,6 +228,14 @@ export default function Comment({
             setReplyingTo={setReplyingTo}
           />
         ))}
+
+      <ReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        targetId={comment.id}
+        targetType="Comment"
+        userId={user?.id}
+      />
     </div>
   );
 }

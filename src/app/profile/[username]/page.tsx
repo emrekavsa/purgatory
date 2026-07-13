@@ -26,7 +26,7 @@ export default async function ProfilePage({ params }: PageProps) {
 
   const { data: profileData } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id, username, avatar_url, username_set")
     .eq("username", decodedUsername)
     .single();
 

@@ -45,11 +45,7 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`flex items-center px-3 sm:px-6 h-14 border-b sticky top-0 z-50 gap-2 sm:gap-4 ${
-        isDark
-          ? "bg-black border-zinc-800 text-white"
-          : "bg-white border-gray-100 text-black"
-      }`}
+      className="flex items-center px-3 sm:px-6 h-14 border-b sticky top-0 z-50 gap-2 sm:gap-4 bg-white border-gray-100 text-black dark:bg-black dark:border-zinc-800 dark:text-white"
     >
       <div className="flex items-center shrink-0 sm:flex-1">
         <Link href="/" className="shrink-0">
@@ -82,11 +78,7 @@ export default function Navbar() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={handleSearch}
-          className={`w-full h-9 pl-9 pr-4 rounded-full text-sm outline-none transition-all ${
-            isDark
-              ? "bg-zinc-800 text-white placeholder:text-zinc-500 focus:bg-zinc-700"
-              : "bg-gray-100 text-black placeholder:text-gray-400 focus:bg-white focus:ring-1 focus:ring-gray-200"
-          }`}
+          className="w-full h-9 pl-9 pr-4 rounded-full text-sm outline-none transition-all bg-gray-100 text-black placeholder:text-gray-400 focus:bg-white focus:ring-1 focus:ring-gray-200 dark:bg-zinc-800 dark:text-white dark:placeholder:text-zinc-500 dark:focus:bg-zinc-700 dark:focus:ring-0"
         />
       </div>
 

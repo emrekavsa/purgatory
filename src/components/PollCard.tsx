@@ -81,11 +81,7 @@ export default memo(function PollCard({
   return (
     <div
       style={{ contentVisibility: "auto", containIntrinsicSize: "auto 400px" }}
-      className={`group p-5 border rounded-3xl transition-all relative ${
-        isDark
-          ? "bg-zinc-900 border-zinc-800 text-white"
-          : "bg-white border-gray-200 text-black"
-      }`}
+      className="group p-5 border rounded-3xl transition-all relative bg-white border-gray-200 text-black dark:bg-zinc-900 dark:border-zinc-800 dark:text-white"
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 text-sm">
@@ -123,7 +119,7 @@ export default memo(function PollCard({
               <img
                 src="/report.svg"
                 alt="Report"
-                className={`w-4 h-4 ${isDark ? "invert" : ""}`}
+                className="w-4 h-4 dark:invert"
               />
             </button>
           )}
@@ -141,11 +137,7 @@ export default memo(function PollCard({
             </button>
           )}
 
-          <div
-            className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
-              isDark ? "bg-zinc-800 text-zinc-400" : "bg-gray-100 text-gray-500"
-            }`}
-          >
+          <div className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-zinc-400">
             {category}
           </div>
         </div>
@@ -167,8 +159,8 @@ export default memo(function PollCard({
               disabled={hasVoted}
               className={`group/opt relative flex overflow-hidden border rounded-2xl min-h-[56px] transition-all
                 ${hasImages ? "flex-col" : "flex-row items-center p-4"}
-                ${isDark ? "border-zinc-800" : "border-gray-100"}
-                ${!hasVoted ? (isDark ? "hover:bg-zinc-800" : "hover:bg-gray-50") : "cursor-default"}
+                border-gray-100 dark:border-zinc-800
+                ${!hasVoted ? "hover:bg-gray-50 dark:hover:bg-zinc-800" : "cursor-default"}
                 ${isMyChoice ? "ring-2 ring-blue-500" : ""}
               `}
             >
@@ -177,9 +169,7 @@ export default memo(function PollCard({
                   className={`absolute left-0 top-0 bottom-0 transition-all duration-1000 ease-out z-0 ${
                     isMyChoice
                       ? "bg-blue-500/10"
-                      : isDark
-                        ? "bg-zinc-800"
-                        : "bg-gray-100"
+                      : "bg-gray-100 dark:bg-zinc-800"
                   }`}
                   style={{ width: `${percent}%` }}
                 />
@@ -227,13 +217,11 @@ export default memo(function PollCard({
         })}
       </div>
 
-      <div
-        className={`mt-5 flex items-center justify-between border-t pt-4 ${isDark ? "border-zinc-800" : "border-gray-100"}`}
-      >
+      <div className="mt-5 flex items-center justify-between border-t pt-4 border-gray-100 dark:border-zinc-800">
         <div className="flex gap-2">
           <Link
             href={`/poll/${poll.id}`}
-            className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-full ${isDark ? "bg-zinc-800 text-zinc-300" : "bg-gray-100 text-gray-600"}`}
+            className="flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-full bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-300"
           >
             <img
               src={isDark ? "/whitecomment.svg" : "/darkcomment.svg"}
@@ -244,12 +232,12 @@ export default memo(function PollCard({
           </Link>
           <button
             onClick={handleShare}
-            className={`flex items-center justify-center w-11 h-9 rounded-full ${copied ? "bg-green-600" : isDark ? "bg-zinc-800" : "bg-gray-100"}`}
+            className={`flex items-center justify-center w-11 h-9 rounded-full ${copied ? "bg-green-600" : "bg-gray-100 dark:bg-zinc-800"}`}
           >
             <img
               src="/share.svg"
               alt=""
-              className={`w-4 h-4 ${isDark || copied ? "invert" : ""}`}
+              className={`w-4 h-4 ${copied ? "invert" : "dark:invert"}`}
             />
           </button>
         </div>
